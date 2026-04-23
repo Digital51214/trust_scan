@@ -92,7 +92,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Column(
                   children: [
                     const Spacer(flex: 6),
-
+                    const SizedBox(height: 180),
+                    const SizedBox(height: 30),
                     Obx(() {
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -114,7 +115,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       );
                     }),
 
-                    const SizedBox(height: 180),
+                    const SizedBox(height: 30),
 
                     Text(
                       item['title']!,

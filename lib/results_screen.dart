@@ -31,17 +31,14 @@ class _ResultScreenState extends State<ResultScreen>
   String? _error;
   bool _isMediaMode = false;
 
-  // Fade-in animation for result card
   late final AnimationController _fadeCtrl;
   late final Animation<double> _fadeAnim;
   late final Animation<Offset> _slideAnim;
 
-  // URL mode values
   int trustScore = 0;
   bool isSafe = true;
   Map<String, dynamic> apiData = {};
 
-  // Media mode values
   int authenticityScore = 0;
   bool isHumanContent = true;
   Map<String, dynamic> mediaData = {};
@@ -52,7 +49,7 @@ class _ResultScreenState extends State<ResultScreen>
 
     _fadeCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 550),
+      duration: const Duration(milliseconds: 600),
     );
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
     _slideAnim = Tween<Offset>(
@@ -109,7 +106,6 @@ class _ResultScreenState extends State<ResultScreen>
           url: widget.inputText!.trim(),
         );
 
-        // ✅ Local + API merged score (replaces old switch-case)
         setState(() {
           apiData = result;
           trustScore = TrustScanService.computeTrustScore(result);
@@ -118,7 +114,6 @@ class _ResultScreenState extends State<ResultScreen>
         });
       }
 
-      // Trigger fade-in once data is ready
       _fadeCtrl.forward();
     } catch (e) {
       setState(() {
@@ -131,34 +126,36 @@ class _ResultScreenState extends State<ResultScreen>
     }
   }
 
-  // ── Color-coded score helpers ───────────────────────────────────────────────
-  /// Returns green / yellow / red based on score value
+  // ── Color / icon / label helpers ─────────────────────────────────────────
+
   Color _scoreColor(int score) {
-    if (score >= 70) return const Color(0xFF3DDC84); // green
-    if (score >= 40) return const Color(0xFFFFC107); // yellow
-    return const Color(0xFFFF5B5B);                  // red
+    if (score >= 70) return const Color(0xFF3DDC84);
+    if (score >= 40) return const Color(0xFFFFC107);
+    return const Color(0xFFFF5B5B);
   }
 
-  /// Icon based on score category
-  IconData _scoreIcon(int score, {bool isMedia = false, bool humanContent = true}) {
+  IconData _scoreIcon(int score,
+      {bool isMedia = false, bool humanContent = true}) {
     if (isMedia) {
-      return humanContent ? Icons.verified_user_rounded : Icons.smart_display_rounded;
+      return humanContent
+          ? Icons.verified_user_rounded
+          : Icons.smart_display_rounded;
     }
-    if (score >= 70) return Icons.verified_user_rounded;   // green → safe
-    if (score >= 40) return Icons.report_problem_rounded;  // yellow → risky
-    return Icons.error_rounded;                            // red → danger
+    if (score >= 70) return Icons.verified_user_rounded;
+    if (score >= 40) return Icons.report_problem_rounded;
+    return Icons.error_rounded;
   }
 
-  /// Label text based on score category
-  String _scoreLabel(int score, {bool isMedia = false, bool humanContent = true}) {
+  String _scoreLabel(int score,
+      {bool isMedia = false, bool humanContent = true}) {
     if (isMedia) return humanContent ? "Authentic" : "AI / Suspicious";
     if (score >= 70) return "Safe";
     if (score >= 40) return "Suspicious";
     return "High Risk";
   }
 
-  /// Description text based on score category
-  String _scoreDescription(int score, {bool isMedia = false, bool humanContent = true}) {
+  String _scoreDescription(int score,
+      {bool isMedia = false, bool humanContent = true}) {
     if (isMedia) {
       return humanContent
           ? "The uploaded media appears authentic and likely human-made."
@@ -169,13 +166,21 @@ class _ResultScreenState extends State<ResultScreen>
     return "This looks very dangerous. Do not open this link!";
   }
 
+  // CHANGE 1: Status badge background color — subtler tint of score color
+  Color _badgeBgColor(int score) {
+    if (score >= 70) return const Color(0xFF3DDC84).withOpacity(0.12);
+    if (score >= 40) return const Color(0xFFFFC107).withOpacity(0.12);
+    return const Color(0xFFFF5B5B).withOpacity(0.12);
+  }
+
   String _safeString(dynamic value, {String fallback = "Unknown"}) {
     if (value == null) return fallback;
     final text = value.toString().trim();
     return text.isEmpty ? fallback : text;
   }
 
-  String _riskLevel() => _safeString(apiData["risk_level"], fallback: "Unknown");
+  String _riskLevel() =>
+      _safeString(apiData["risk_level"], fallback: "Unknown");
 
   String _threatTypes() {
     final list = apiData["threat_types"];
@@ -224,6 +229,7 @@ class _ResultScreenState extends State<ResultScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
+          // Background gradient
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -237,13 +243,14 @@ class _ResultScreenState extends State<ResultScreen>
               ),
             ),
           ),
+
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── App bar ───────────────────────────────────────────────
+                  // ── App bar ─────────────────────────────────────────────
                   Row(
                     children: [
                       GestureDetector(
@@ -264,7 +271,7 @@ class _ResultScreenState extends State<ResultScreen>
                   ),
                   const SizedBox(height: 20),
 
-                  // ── Loading state ─────────────────────────────────────────
+                  // ── Loading state ────────────────────────────────────────
                   if (_loading) ...[
                     Container(
                       width: double.infinity,
@@ -315,7 +322,8 @@ class _ResultScreenState extends State<ResultScreen>
                             borderRadius: BorderRadius.circular(999),
                             child: LinearProgressIndicator(
                               minHeight: 10,
-                              backgroundColor: Colors.white.withOpacity(.12),
+                              backgroundColor:
+                              Colors.white.withOpacity(.12),
                               valueColor:
                               const AlwaysStoppedAnimation(cyan),
                             ),
@@ -344,7 +352,7 @@ class _ResultScreenState extends State<ResultScreen>
                     ),
                   ],
 
-                  // ── Error state ───────────────────────────────────────────
+                  // ── Error state ──────────────────────────────────────────
                   if (_error != null && !_loading)
                     FadeTransition(
                       opacity: _fadeAnim,
@@ -354,8 +362,7 @@ class _ResultScreenState extends State<ResultScreen>
                           width: double.infinity,
                           padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
                           decoration: BoxDecoration(
-                            color:
-                            const Color(0xFF0A2235).withOpacity(.55),
+                            color: const Color(0xFF0A2235).withOpacity(.55),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                                 color: const Color(0xFFFF6B6B), width: 1),
@@ -385,8 +392,7 @@ class _ResultScreenState extends State<ResultScreen>
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                     color: const Color(0xFF37C8FF),
-                                    borderRadius:
-                                    BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: const Text(
                                     "Retry",
@@ -403,7 +409,7 @@ class _ResultScreenState extends State<ResultScreen>
                       ),
                     ),
 
-                  // ── Result state (fade + slide in) ────────────────────────
+                  // ── Result state ─────────────────────────────────────────
                   if (!_loading && _error == null)
                     FadeTransition(
                       opacity: _fadeAnim,
@@ -412,50 +418,67 @@ class _ResultScreenState extends State<ResultScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Score card
+
+                            // ── SCORE CARD (redesigned) ──────────────────
                             Container(
-                              padding: const EdgeInsets.fromLTRB(
-                                  18, 16, 18, 14),
+                              padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF0A2235)
-                                    .withOpacity(.55),
-                                borderRadius: BorderRadius.circular(14),
-                                border:
-                                Border.all(color: cyan, width: 1),
+                                color: const Color(0xFF0A2235).withOpacity(.60),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  // CHANGE 2: border color matches score
+                                  color: scoreColor.withOpacity(0.45),
+                                  width: 1.2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: scoreColor.withOpacity(0.08),
+                                    blurRadius: 20,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
                               ),
                               child: Column(
                                 children: [
-                                  Container(
-                                    width: 54,
-                                    height: 54,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color:
-                                      scoreColor.withOpacity(.15),
-                                      border: Border.all(
-                                          color: scoreColor
-                                              .withOpacity(.55)),
-                                    ),
-                                    child: Icon(
-                                      _scoreIcon(activeScore,
-                                          isMedia: _isMediaMode,
-                                          humanContent: isHumanContent),
-                                      color: scoreColor,
-                                      size: 28,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    _scoreLabel(activeScore,
+
+                                  // CHANGE 3: Big circular score ring
+                                  _CircularScoreRing(
+                                    score: activeScore,
+                                    color: scoreColor,
+                                    icon: _scoreIcon(activeScore,
                                         isMedia: _isMediaMode,
                                         humanContent: isHumanContent),
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w900,
-                                      color: scoreColor,
+                                  ),
+
+                                  const SizedBox(height: 14),
+
+                                  // CHANGE 4: Colored status badge pill
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 7),
+                                    decoration: BoxDecoration(
+                                      color: _badgeBgColor(activeScore),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: scoreColor.withOpacity(0.35),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      _scoreLabel(activeScore,
+                                          isMedia: _isMediaMode,
+                                          humanContent: isHumanContent),
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                        color: scoreColor,
+                                        letterSpacing: 0.3,
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
+
+                                  const SizedBox(height: 10),
+
+                                  // Description text
                                   Text(
                                     _scoreDescription(activeScore,
                                         isMedia: _isMediaMode,
@@ -463,13 +486,15 @@ class _ResultScreenState extends State<ResultScreen>
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 12.8,
-                                      height: 1.35,
-                                      color:
-                                      Colors.white.withOpacity(.72),
+                                      height: 1.4,
+                                      color: Colors.white.withOpacity(.68),
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                  const SizedBox(height: 14),
+
+                                  const SizedBox(height: 16),
+
+                                  // Score bar row
                                   Row(
                                     children: [
                                       Text(
@@ -478,13 +503,12 @@ class _ResultScreenState extends State<ResultScreen>
                                             : "Trust Score",
                                         style: TextStyle(
                                           fontSize: 11.5,
-                                          color: Colors.white
-                                              .withOpacity(.65),
+                                          color:
+                                          Colors.white.withOpacity(.60),
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
                                       const Spacer(),
-                                      // Color-coded percentage label
                                       Text(
                                         "$activeScore%",
                                         style: TextStyle(
@@ -496,10 +520,48 @@ class _ResultScreenState extends State<ResultScreen>
                                     ],
                                   ),
                                   const SizedBox(height: 8),
-                                  // Color-coded animated progress bar
                                   _AnimatedScoreBar(
                                     value: activeScore / 100,
                                     color: scoreColor,
+                                  ),
+
+                                  // CHANGE 5: Scanned input shown inside card
+                                  const SizedBox(height: 14),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 9),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.04),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                          color: Colors.white10),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          _isMediaMode
+                                              ? Icons.image_outlined
+                                              : Icons.link_rounded,
+                                          color: cyan.withOpacity(0.7),
+                                          size: 14,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            displayInput,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: Colors.white
+                                                  .withOpacity(0.55),
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -507,6 +569,7 @@ class _ResultScreenState extends State<ResultScreen>
 
                             const SizedBox(height: 22),
 
+                            // ── Key Signals heading ──────────────────────
                             const Text(
                               "Key Signals",
                               style: TextStyle(
@@ -518,11 +581,11 @@ class _ResultScreenState extends State<ResultScreen>
 
                             const SizedBox(height: 14),
 
+                            // ── URL signal cards ─────────────────────────
                             if (!_isMediaMode)
                               GridView.count(
                                 shrinkWrap: true,
-                                physics:
-                                const NeverScrollableScrollPhysics(),
+                                physics: const NeverScrollableScrollPhysics(),
                                 crossAxisCount: 2,
                                 mainAxisSpacing: 12,
                                 crossAxisSpacing: 12,
@@ -539,28 +602,21 @@ class _ResultScreenState extends State<ResultScreen>
                                     apiData["is_threat"] == true,
                                   ),
                                   _SignalCard(
-                                    icon:
-                                    Icons.report_problem_rounded,
+                                    icon: Icons.report_problem_rounded,
                                     title: "Threats",
                                     value: _threatTypes(),
-                                    iconColor:
-                                    const Color(0xFF8B5CF6),
-                                    showCheck: (apiData[
-                                    "threat_types"]
+                                    iconColor: const Color(0xFF8B5CF6),
+                                    showCheck: (apiData["threat_types"]
                                     is List) &&
-                                        (apiData["threat_types"]
-                                        as List)
+                                        (apiData["threat_types"] as List)
                                             .isEmpty,
-                                    showAlert: (apiData[
-                                    "threat_types"]
+                                    showAlert: (apiData["threat_types"]
                                     is List) &&
-                                        (apiData["threat_types"]
-                                        as List)
+                                        (apiData["threat_types"] as List)
                                             .isNotEmpty,
                                   ),
                                   _SignalCard(
-                                    icon:
-                                    Icons.access_time_rounded,
+                                    icon: Icons.access_time_rounded,
                                     title: "Domain Age",
                                     value: _domainAge(),
                                     iconColor: cyan,
@@ -578,31 +634,28 @@ class _ResultScreenState extends State<ResultScreen>
                                 ],
                               ),
 
+                            // ── Media signal cards ───────────────────────
                             if (_isMediaMode)
                               GridView.count(
                                 shrinkWrap: true,
-                                physics:
-                                const NeverScrollableScrollPhysics(),
+                                physics: const NeverScrollableScrollPhysics(),
                                 crossAxisCount: 2,
                                 mainAxisSpacing: 12,
                                 crossAxisSpacing: 12,
                                 childAspectRatio: 1.35,
                                 children: [
                                   _SignalCard(
-                                    icon:
-                                    Icons.perm_media_rounded,
+                                    icon: Icons.perm_media_rounded,
                                     title: "File Type",
                                     value: _mediaFileType(),
                                     iconColor: cyan,
                                     showCheck: true,
                                   ),
                                   _SignalCard(
-                                    icon:
-                                    Icons.fact_check_rounded,
+                                    icon: Icons.fact_check_rounded,
                                     title: "Verdict",
                                     value: _mediaVerdict(),
-                                    iconColor:
-                                    const Color(0xFF8B5CF6),
+                                    iconColor: const Color(0xFF8B5CF6),
                                     showCheck: _mediaVerdict()
                                         .toLowerCase() ==
                                         "human",
@@ -611,8 +664,7 @@ class _ResultScreenState extends State<ResultScreen>
                                         "human",
                                   ),
                                   _SignalCard(
-                                    icon:
-                                    Icons.analytics_rounded,
+                                    icon: Icons.analytics_rounded,
                                     title: "AI Confidence",
                                     value: _mediaAiConfidence(),
                                     iconColor: cyan,
@@ -629,8 +681,8 @@ class _ResultScreenState extends State<ResultScreen>
                                     title: "Deepfake",
                                     value: _mediaDeepfake(),
                                     iconColor: cyan,
-                                    showCheck: _mediaDeepfake() ==
-                                        "Not Detected",
+                                    showCheck:
+                                    _mediaDeepfake() == "Not Detected",
                                     showAlert:
                                     _mediaDeepfake() == "Detected",
                                   ),
@@ -639,87 +691,30 @@ class _ResultScreenState extends State<ResultScreen>
 
                             const SizedBox(height: 22),
 
+                            // ── Extra info rows ──────────────────────────
                             if (!_isMediaMode &&
                                 _createdDate() != "Unknown")
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.fromLTRB(
-                                    14, 14, 14, 14),
-                                decoration: BoxDecoration(
-                                  color: Colors.white
-                                      .withOpacity(0.05),
-                                  borderRadius:
-                                  BorderRadius.circular(14),
-                                  border: Border.all(
-                                      color: Colors.white10),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.calendar_today_rounded,
-                                      color: cyan,
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        "Created Date: ${_createdDate()}",
-                                        style: TextStyle(
-                                          color: Colors.white
-                                              .withOpacity(.88),
-                                          fontWeight:
-                                          FontWeight.w700,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              _InfoRow(
+                                icon: Icons.calendar_today_rounded,
+                                label: "Created Date",
+                                value: _createdDate(),
                               ),
 
                             if (_isMediaMode)
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.fromLTRB(
-                                    14, 14, 14, 14),
-                                decoration: BoxDecoration(
-                                  color: Colors.white
-                                      .withOpacity(0.05),
-                                  borderRadius:
-                                  BorderRadius.circular(14),
-                                  border: Border.all(
-                                      color: Colors.white10),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.auto_awesome_rounded,
-                                      color: cyan,
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        "Likely Generator: ${_mediaGenerator()}",
-                                        style: TextStyle(
-                                          color: Colors.white
-                                              .withOpacity(.88),
-                                          fontWeight:
-                                          FontWeight.w700,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              _InfoRow(
+                                icon: Icons.auto_awesome_rounded,
+                                label: "Likely Generator",
+                                value: _mediaGenerator(),
                               ),
 
                             const SizedBox(height: 22),
 
+                            // ── Check another link button ────────────────
                             SizedBox(
                               width: double.infinity,
                               height: 70,
                               child: ClipRRect(
-                                borderRadius:
-                                BorderRadius.circular(999),
+                                borderRadius: BorderRadius.circular(999),
                                 child: Material(
                                   color: Colors.transparent,
                                   child: InkWell(
@@ -739,6 +734,7 @@ class _ResultScreenState extends State<ResultScreen>
 
                             const SizedBox(height: 14),
 
+                            // Report link
                             Center(
                               child: GestureDetector(
                                 onTap: () {},
@@ -746,8 +742,7 @@ class _ResultScreenState extends State<ResultScreen>
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
-                                      Icons
-                                          .report_gmailerrorred_rounded,
+                                      Icons.report_gmailerrorred_rounded,
                                       color: Color(0xFFFF6B6B),
                                       size: 18,
                                     ),
@@ -780,7 +775,182 @@ class _ResultScreenState extends State<ResultScreen>
   }
 }
 
-// ── Animated color-coded score bar ───────────────────────────────────────────
+
+// ── CHANGE 6: Circular score ring widget (NEW) ────────────────────────────────
+class _CircularScoreRing extends StatefulWidget {
+  const _CircularScoreRing({
+    required this.score,
+    required this.color,
+    required this.icon,
+  });
+
+  final int score;
+  final Color color;
+  final IconData icon;
+
+  @override
+  State<_CircularScoreRing> createState() => _CircularScoreRingState();
+}
+
+class _CircularScoreRingState extends State<_CircularScoreRing>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _anim = Tween<double>(begin: 0, end: widget.score / 100).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
+    );
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (mounted) _ctrl.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (context, _) {
+        return SizedBox(
+          width: 110,
+          height: 110,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Outer glow ring
+              Container(
+                width: 110,
+                height: 110,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.color.withOpacity(0.18),
+                      blurRadius: 22,
+                      spreadRadius: 4,
+                    ),
+                  ],
+                ),
+              ),
+              // Progress arc
+              SizedBox(
+                width: 110,
+                height: 110,
+                child: CircularProgressIndicator(
+                  value: _anim.value,
+                  strokeWidth: 7,
+                  backgroundColor: widget.color.withOpacity(0.12),
+                  valueColor: AlwaysStoppedAnimation(widget.color),
+                  strokeCap: StrokeCap.round,
+                ),
+              ),
+              // Inner content
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(widget.icon, color: widget.color, size: 22),
+                  const SizedBox(height: 2),
+                  Text(
+                    "${(widget.score * _anim.value).round()}",
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      color: widget.color,
+                      height: 1.0,
+                    ),
+                  ),
+                  Text(
+                    "/ 100",
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: widget.color.withOpacity(0.60),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+
+// ── Info row ─────────────────────────────────────────────────────────────────
+// CHANGE 7: Extracted as reusable widget (cleaner)
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  static const cyan = Color(0xFF2CC7FF);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: cyan, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    color: Colors.white.withOpacity(0.45),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(.88),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+// ── Animated score bar ────────────────────────────────────────────────────────
 class _AnimatedScoreBar extends StatefulWidget {
   const _AnimatedScoreBar({required this.value, required this.color});
   final double value;
@@ -805,7 +975,6 @@ class _AnimatedScoreBarState extends State<_AnimatedScoreBar>
     _anim = Tween<double>(begin: 0, end: widget.value).animate(
       CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
     );
-    // Small delay so it starts after the fade-in
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) _ctrl.forward();
     });
@@ -825,14 +994,15 @@ class _AnimatedScoreBarState extends State<_AnimatedScoreBar>
         borderRadius: BorderRadius.circular(999),
         child: LinearProgressIndicator(
           value: _anim.value,
-          minHeight: 10,
-          backgroundColor: Colors.white.withOpacity(.12),
+          minHeight: 8,
+          backgroundColor: Colors.white.withOpacity(.10),
           valueColor: AlwaysStoppedAnimation(widget.color),
         ),
       ),
     );
   }
 }
+
 
 // ── Signal card ───────────────────────────────────────────────────────────────
 class _SignalCard extends StatelessWidget {
@@ -851,8 +1021,6 @@ class _SignalCard extends StatelessWidget {
   final Color iconColor;
   final bool showCheck;
   final bool showAlert;
-
-  static const cyan = Color(0xFF2CC7FF);
 
   @override
   Widget build(BuildContext context) {
@@ -883,7 +1051,7 @@ class _SignalCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white.withOpacity(.65),
+                  color: Colors.white.withOpacity(.60),
                 ),
               ),
               const SizedBox(height: 4),
@@ -901,15 +1069,15 @@ class _SignalCard extends StatelessWidget {
           ),
           if (showCheck)
             const Positioned(
-              top: 8,
-              right: 8,
+              top: 0,
+              right: 0,
               child: Icon(Icons.verified_rounded,
                   color: Color(0xFF3DDC84), size: 18),
             ),
           if (showAlert)
             const Positioned(
-              top: 8,
-              right: 8,
+              top: 0,
+              right: 0,
               child: Icon(Icons.warning_rounded,
                   color: Color(0xFFFF5B5B), size: 18),
             ),
