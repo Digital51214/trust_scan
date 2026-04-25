@@ -27,12 +27,26 @@ class HistoryService {
 
       final decoded = jsonDecode(res.body);
 
-      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
 
-      return {"status": false, "message": res.body, "data": []};
+      if (decoded is Map) {
+        return Map<String, dynamic>.from(decoded);
+      }
+
+      return {
+        "status": false,
+        "message": "Invalid history response",
+        "data": [],
+      };
     } catch (e) {
       print("❌ HISTORY EXCEPTION: $e");
-      return {"status": false, "message": e.toString(), "data": []};
+      return {
+        "status": false,
+        "message": e.toString(),
+        "data": [],
+      };
     }
   }
 }

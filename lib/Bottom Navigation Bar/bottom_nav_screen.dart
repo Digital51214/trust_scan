@@ -5,6 +5,7 @@ import 'package:social_saver/Bottom%20Navigation%20Bar/profile_screen.dart';
 import 'package:social_saver/Bottom%20Navigation%20Bar/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:social_saver/Bottom%20Navigation%20Bar/video_background.dart';
 // ─────────────────────────────────────────────
 //  CONTROLLER
 // ─────────────────────────────────────────────
@@ -61,14 +62,14 @@ class _SocialSaverNav extends StatelessWidget {
 
     return Container(
       height: 76,
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 52),
       decoration: BoxDecoration(
         color: const Color(0xFF0A1F2E),
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(60),
-          bottomLeft: Radius.circular(15),
-          topRight: Radius.circular(15),
-          bottomRight: Radius.circular(60),
+          topLeft: Radius.circular(100),
+          bottomLeft: Radius.circular(10),
+          topRight: Radius.circular(10),
+          bottomRight: Radius.circular(100),
         ),
         border: Border.all(
           color: const Color(0xFF2FAAD9).withOpacity(0.5),
@@ -169,9 +170,11 @@ class _SocialSaverNav extends StatelessWidget {
                 ],
               ),
             ),
+         SizedBox(height: 7,),
           ],
         ),
       ),
+
     );
   }
 }

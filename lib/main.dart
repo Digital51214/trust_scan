@@ -7,15 +7,16 @@ import 'package:social_saver/Intro Screens/onboarding_screen.dart';
 import 'package:social_saver/Authentication Screens/signin_screen.dart';
 import 'package:social_saver/Bottom Navigation Bar/bottom_nav_screen.dart';
 
-// ✅ session controller
 import 'package:social_saver/session/session_controller.dart';
+
+// 👇 ADD THIS
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await GetStorage.init();
 
-  // ✅ IMPORTANT: keep it permanent (single instance for whole app)
   if (!Get.isRegistered<SessionController>()) {
     Get.put(SessionController(), permanent: true);
   }
@@ -31,17 +32,20 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'SocialSaver',
       debugShowCheckedModeBanner: false,
+
+      // 👇 ADD THIS
+      navigatorObservers: [routeObserver],
+
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'Arial',
       ),
-      initialRoute: '/onboarding',
+      initialRoute: '/splash',
       getPages: [
         GetPage(name: '/splash', page: () => const SplashScreen()),
         GetPage(name: '/onboarding', page: () => const OnboardingScreen()),
         GetPage(name: '/signin', page: () => const SignInScreen()),
         GetPage(name: '/home', page: () => const BottomNavScreen()),
-
       ],
     );
   }

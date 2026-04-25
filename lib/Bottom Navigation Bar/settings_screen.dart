@@ -409,6 +409,8 @@ import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 
 import 'package:social_saver/Authentication Screens/signin_screen.dart';
+import 'package:social_saver/Bottom%20Navigation%20Bar/video_background.dart';
+
 import 'package:social_saver/session/session_controller.dart';
 import 'delete_account_screen.dart';
 
@@ -432,19 +434,24 @@ class _SettingsScreenState extends State<SettingsScreen>
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
+        fit: StackFit.expand,
         children: [
+          VideoBackground(),
+
           /// 🌌 Animated Gradient Background
           AnimatedContainer(
             duration: const Duration(seconds: 6),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFF001F3F),
-                  Color(0xFF00E5FF),
-                  Color(0xFF020C18),
+                  Colors.black.withOpacity(0.22),
+                  Colors.transparent,
+                  const Color(0xFF061B2B).withOpacity(0.22),
+                  const Color(0xFF061B2B).withOpacity(0.72),
                 ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                stops: const [0.0, 0.28, 0.62, 1.0],
               ),
             ),
           ),
@@ -548,7 +555,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             borderRadius: BorderRadius.circular(999),
             boxShadow: [
               BoxShadow(
-                color: cyan.withOpacity(0.4),
+                color: cyan.withOpacity(0.1),
                 blurRadius: 20,
                 spreadRadius: 1,
               )
@@ -634,7 +641,7 @@ class _PillTile extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.05),
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: cyan.withOpacity(.3)),
+              border: Border.all(color: cyan.withOpacity(.1)),
               boxShadow: [
                 BoxShadow(
                   color: cyan.withOpacity(.3),

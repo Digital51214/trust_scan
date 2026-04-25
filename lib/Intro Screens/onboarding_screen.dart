@@ -91,9 +91,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               SafeArea(
                 child: Column(
                   children: [
-                    const Spacer(flex: 6),
-                    const SizedBox(height: 180),
-                    const SizedBox(height: 30),
+                    const Spacer(flex: 5),
+                    const SizedBox(height: 200),
+                    const SizedBox(height: 120),
                     Obx(() {
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -115,19 +115,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       );
                     }),
 
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 15),
 
                     Text(
                       item['title']!,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        fontSize: 22,
+                        fontSize: 28, fontFamily: "A",
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 5),
 
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -135,7 +135,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         item['subtitle']!,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontSize: 14.5,
+                          fontSize: 16,
+                          fontFamily: "A",
                           height: 1.4,
                           color: Colors.white70,
                         ),
@@ -201,7 +202,7 @@ class OnboardingController extends GetxController {
     {
       "bg": "assets/images/bg3.png",
       "title": "Stay Ahead of Fake AI Ads",
-      "subtitle": "Detect AI-generated images and reviews instantly.",
+      "subtitle": "Detect AI-generated images, videos, and reviews so you don’t get fooled.",
     },
   ];
 

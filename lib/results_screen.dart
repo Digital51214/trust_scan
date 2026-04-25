@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
-
+import 'package:social_saver/Bottom%20Navigation%20Bar/video_bg2.dart';
 import 'package:social_saver/session/session_controller.dart';
 
 import 'Services/trust_scan_service.dart';
@@ -51,11 +51,21 @@ class _ResultScreenState extends State<ResultScreen>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
+
+    _fadeAnim = CurvedAnimation(
+      parent: _fadeCtrl,
+      curve: Curves.easeOut,
+    );
+
     _slideAnim = Tween<Offset>(
       begin: const Offset(0, 0.06),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut));
+    ).animate(
+      CurvedAnimation(
+        parent: _fadeCtrl,
+        curve: Curves.easeOut,
+      ),
+    );
 
     _isMediaMode = widget.mediaFile != null;
     _hitApi();
@@ -75,6 +85,7 @@ class _ResultScreenState extends State<ResultScreen>
 
     try {
       final session = SessionController.instance;
+      session.loadSession();
 
       if (_isMediaMode) {
         final result = await TrustScanService.detectMedia(
@@ -82,22 +93,24 @@ class _ResultScreenState extends State<ResultScreen>
           file: widget.mediaFile!,
         );
 
-        final detection = result["detection"] ?? {};
+        print("MEDIA RESULT PARSED: $result");
+
+        final detection =
+            (result["detection"] as Map<String, dynamic>?) ?? {};
+
         final bool isAi = detection["is_ai_generated"] == true;
         final bool isDeepfake = detection["is_deepfake"] == true;
 
-        final String aiConfidenceText =
-        (detection["ai_confidence"] ?? "0%").toString().replaceAll("%", "");
-        final double aiConfidence =
-            double.tryParse(aiConfidenceText.trim()) ?? 0;
-
         final int computedAuthenticity =
-        (100 - aiConfidence).round().clamp(0, 100);
+        result["authenticity_score"] is int
+            ? result["authenticity_score"] as int
+            : _computeAuthenticityFromDetection(detection);
 
         setState(() {
           mediaData = result;
-          authenticityScore = computedAuthenticity;
-          isHumanContent = !isAi && !isDeepfake;
+          authenticityScore = computedAuthenticity.clamp(0, 100);
+          isHumanContent =
+              result["is_human_content"] == true || (!isAi && !isDeepfake);
           _loading = false;
         });
       } else {
@@ -114,19 +127,30 @@ class _ResultScreenState extends State<ResultScreen>
         });
       }
 
-      _fadeCtrl.forward();
+      _fadeCtrl.forward(from: 0);
     } catch (e) {
+      print("RESULT SCREEN ERROR: $e");
+
       setState(() {
         _error = _isMediaMode
             ? "Failed to analyze this media. Please try again."
             : "Failed to scan this URL. Please try again.";
         _loading = false;
       });
-      _fadeCtrl.forward();
+
+      _fadeCtrl.forward(from: 0);
     }
   }
 
-  // ── Color / icon / label helpers ─────────────────────────────────────────
+  int _computeAuthenticityFromDetection(Map<String, dynamic> detection) {
+    final confStr = (detection["ai_confidence"] ?? "0")
+        .toString()
+        .replaceAll("%", "")
+        .trim();
+
+    final aiConf = double.tryParse(confStr) ?? 0.0;
+    return (100 - aiConf).round().clamp(0, 100);
+  }
 
   Color _scoreColor(int score) {
     if (score >= 70) return const Color(0xFF3DDC84);
@@ -134,39 +158,53 @@ class _ResultScreenState extends State<ResultScreen>
     return const Color(0xFFFF5B5B);
   }
 
-  IconData _scoreIcon(int score,
-      {bool isMedia = false, bool humanContent = true}) {
+  IconData _scoreIcon(
+      int score, {
+        bool isMedia = false,
+        bool humanContent = true,
+      }) {
     if (isMedia) {
       return humanContent
           ? Icons.verified_user_rounded
           : Icons.smart_display_rounded;
     }
+
     if (score >= 70) return Icons.verified_user_rounded;
     if (score >= 40) return Icons.report_problem_rounded;
     return Icons.error_rounded;
   }
 
-  String _scoreLabel(int score,
-      {bool isMedia = false, bool humanContent = true}) {
-    if (isMedia) return humanContent ? "Authentic" : "AI / Suspicious";
+  String _scoreLabel(
+      int score, {
+        bool isMedia = false,
+        bool humanContent = true,
+      }) {
+    if (isMedia) {
+      if (humanContent && score >= 50) return "Authentic";
+      return "AI / Suspicious";
+    }
+
     if (score >= 70) return "Safe";
     if (score >= 40) return "Suspicious";
     return "High Risk";
   }
 
-  String _scoreDescription(int score,
-      {bool isMedia = false, bool humanContent = true}) {
+  String _scoreDescription(
+      int score, {
+        bool isMedia = false,
+        bool humanContent = true,
+      }) {
     if (isMedia) {
-      return humanContent
+      return humanContent && score >= 50
           ? "The uploaded media appears authentic and likely human-made."
           : "This media may be AI-generated or manipulated.";
     }
+
     if (score >= 70) return "The link you shared appeared to be safe!";
     if (score >= 40) return "This link looks suspicious. Proceed with caution!";
     return "This looks very dangerous. Do not open this link!";
   }
 
-  // CHANGE 1: Status badge background color — subtler tint of score color
   Color _badgeBgColor(int score) {
     if (score >= 70) return const Color(0xFF3DDC84).withOpacity(0.12);
     if (score >= 40) return const Color(0xFFFFC107).withOpacity(0.12);
@@ -179,8 +217,7 @@ class _ResultScreenState extends State<ResultScreen>
     return text.isEmpty ? fallback : text;
   }
 
-  String _riskLevel() =>
-      _safeString(apiData["risk_level"], fallback: "Unknown");
+  String _riskLevel() => _safeString(apiData["risk_level"]);
 
   String _threatTypes() {
     final list = apiData["threat_types"];
@@ -192,28 +229,36 @@ class _ResultScreenState extends State<ResultScreen>
   String _registrar() => _safeString(apiData["registrar"]);
   String _createdDate() => _safeString(apiData["created_date"]);
 
+  Map<String, dynamic> get _det =>
+      (mediaData["detection"] as Map<String, dynamic>?) ?? {};
+
   String _mediaVerdict() =>
-      _safeString(mediaData["detection"]?["verdict"], fallback: "Unknown");
+      _safeString(_det["verdict"] ?? mediaData["verdict"]);
 
   String _mediaAiConfidence() =>
-      _safeString(mediaData["detection"]?["ai_confidence"], fallback: "0%");
+      _safeString(_det["ai_confidence"] ?? mediaData["ai_confidence"],
+          fallback: "0%");
 
   String _mediaGenerator() =>
-      _safeString(mediaData["detection"]?["generated_by"], fallback: "Unknown");
+      _safeString(_det["generated_by"] ?? mediaData["generated_by"]);
 
   String _mediaDeepfake() {
-    final isDeepfake = mediaData["detection"]?["is_deepfake"] == true;
+    final isDeepfake = _det["is_deepfake"] == true;
     return isDeepfake ? "Detected" : "Not Detected";
   }
 
   String _mediaFileType() =>
-      _safeString(mediaData["file_type"], fallback: "Unknown");
+      _safeString(mediaData["file_type"] ?? _det["file_type"]);
 
   String _mediaFileName() {
     if (widget.mediaFile != null) {
       return widget.mediaFile!.path.split('/').last;
     }
-    return _safeString(mediaData["file_name"], fallback: "Selected Media");
+
+    return _safeString(
+      mediaData["file_name"] ?? _det["file_name"],
+      fallback: "Selected Media",
+    );
   }
 
   @override
@@ -224,182 +269,507 @@ class _ResultScreenState extends State<ResultScreen>
     final int activeScore = _isMediaMode ? authenticityScore : trustScore;
     final Color scoreColor = _scoreColor(activeScore);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Background gradient
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF0D5E7D),
-                  bg,
-                  Color(0xFF040F1D),
-                ],
-              ),
-            ),
-          ),
+    return WillPopScope(
+      onWillPop: () async {
+        Get.back(result: true);
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            VideoBackground2(),
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => Get.back(result: true),
+                          child: Image.asset(
+                            "assets/images/back_icon.png",
+                            height: 44,
+                            width: 44,
+                          ),
+                        ),
+                        const Spacer(),
+                        Image.asset(
+                          "assets/images/logo.png",
+                          width: 85,
+                          height: 85,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
 
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── App bar ─────────────────────────────────────────────
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => Get.back(),
-                        child: Image.asset(
-                          "assets/images/back_icon.png",
-                          height: 44,
-                          width: 44,
+                    if (_loading) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0A2235).withOpacity(.55),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: cyan, width: 1),
+                        ),
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              width: 160,
+                              height: 160,
+                              child: Lottie.asset(
+                                "assets/images/Flow_5.json",
+                                repeat: true,
+                                animate: true,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              _isMediaMode
+                                  ? "Analyzing media…"
+                                  : "Checking the URL…",
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _isMediaMode
+                                  ? "Please wait while we inspect the image/video for AI, deepfake, and authenticity signals."
+                                  : "Please wait while we analyze the link for scams & threats.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12.8,
+                                height: 1.35,
+                                color: Colors.white.withOpacity(.72),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(999),
+                              child: const LinearProgressIndicator(
+                                minHeight: 10,
+                                backgroundColor: Colors.white12,
+                                valueColor: AlwaysStoppedAnimation(cyan),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const Spacer(),
-                      Image.asset(
-                        "assets/images/logo.png",
-                        width: 85,
-                        height: 85,
+                      const SizedBox(height: 14),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.06),
+                          borderRadius: BorderRadius.circular(12),
+                          border:
+                          Border.all(color: Colors.white.withOpacity(0.08)),
+                        ),
+                        child: Text(
+                          displayInput,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.85),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 20),
 
-                  // ── Loading state ────────────────────────────────────────
-                  if (_loading) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0A2235).withOpacity(.55),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: cyan, width: 1),
-                      ),
-                      child: Column(
-                        children: [
-                          SizedBox(
-                            width: 160,
-                            height: 160,
-                            child: Lottie.asset(
-                              "assets/images/Flow_5.json",
-                              repeat: true,
-                              animate: true,
-                              fit: BoxFit.contain,
+                    if (_error != null && !_loading)
+                      FadeTransition(
+                        opacity: _fadeAnim,
+                        child: SlideTransition(
+                          position: _slideAnim,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0A2235).withOpacity(.55),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: const Color(0xFFFF6B6B),
+                                width: 1,
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  color: Color(0xFFFF6B6B),
+                                  size: 34,
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  _error!,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(.85),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                GestureDetector(
+                                  onTap: _hitApi,
+                                  child: Container(
+                                    height: 46,
+                                    width: double.infinity,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF37C8FF),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Text(
+                                      "Retry",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            _isMediaMode
-                                ? "Analyzing media…"
-                                : "Checking the URL…",
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _isMediaMode
-                                ? "Please wait while we inspect the image/video for AI, deepfake, and authenticity signals."
-                                : "Please wait while we analyze the link for scams & threats.",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 12.8,
-                              height: 1.35,
-                              color: Colors.white.withOpacity(.72),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(999),
-                            child: LinearProgressIndicator(
-                              minHeight: 10,
-                              backgroundColor:
-                              Colors.white.withOpacity(.12),
-                              valueColor:
-                              const AlwaysStoppedAnimation(cyan),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.06),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: Colors.white.withOpacity(0.08)),
-                      ),
-                      child: Text(
-                        displayInput,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.85),
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ),
-                  ],
 
-                  // ── Error state ──────────────────────────────────────────
-                  if (_error != null && !_loading)
-                    FadeTransition(
-                      opacity: _fadeAnim,
-                      child: SlideTransition(
-                        position: _slideAnim,
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0A2235).withOpacity(.55),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                                color: const Color(0xFFFF6B6B), width: 1),
-                          ),
+                    if (!_loading && _error == null)
+                      FadeTransition(
+                        opacity: _fadeAnim,
+                        child: SlideTransition(
+                          position: _slideAnim,
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(
-                                Icons.error_outline_rounded,
-                                color: Color(0xFFFF6B6B),
-                                size: 34,
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                _error!,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(.85),
-                                  fontWeight: FontWeight.w700,
+                              Container(
+                                padding:
+                                const EdgeInsets.fromLTRB(18, 20, 18, 18),
+                                decoration: BoxDecoration(
+                                  color:
+                                  const Color(0xFF0A2235).withOpacity(.60),
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: scoreColor.withOpacity(0.45),
+                                    width: 1.2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: scoreColor.withOpacity(0.08),
+                                      blurRadius: 20,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    _CircularScoreRing(
+                                      score: activeScore,
+                                      color: scoreColor,
+                                      icon: _scoreIcon(
+                                        activeScore,
+                                        isMedia: _isMediaMode,
+                                        humanContent: isHumanContent,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 7,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: _badgeBgColor(activeScore),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: scoreColor.withOpacity(0.35),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        _scoreLabel(
+                                          activeScore,
+                                          isMedia: _isMediaMode,
+                                          humanContent: isHumanContent,
+                                        ),
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w800,
+                                          color: scoreColor,
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      _scoreDescription(
+                                        activeScore,
+                                        isMedia: _isMediaMode,
+                                        humanContent: isHumanContent,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 12.8,
+                                        height: 1.4,
+                                        color: Colors.white.withOpacity(.68),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          _isMediaMode
+                                              ? "Authenticity Score"
+                                              : "Trust Score",
+                                          style: TextStyle(
+                                            fontSize: 11.5,
+                                            color:
+                                            Colors.white.withOpacity(.60),
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Text(
+                                          "$activeScore%",
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: scoreColor,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    _AnimatedScoreBar(
+                                      value: activeScore / 100,
+                                      color: scoreColor,
+                                    ),
+                                    const SizedBox(height: 14),
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 9,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.04),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: Colors.white10),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            _isMediaMode
+                                                ? Icons.image_outlined
+                                                : Icons.link_rounded,
+                                            color: cyan.withOpacity(0.7),
+                                            size: 14,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              displayInput,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color:
+                                                Colors.white.withOpacity(0.55),
+                                                fontSize: 11.5,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              GestureDetector(
-                                onTap: _hitApi,
-                                child: Container(
-                                  height: 46,
-                                  width: double.infinity,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF37C8FF),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Text(
-                                    "Retry",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w900,
+                              const SizedBox(height: 22),
+                              const Text(
+                                "Key Signals",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+
+                              if (!_isMediaMode)
+                                GridView.count(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  crossAxisCount: 2,
+                                  mainAxisSpacing: 12,
+                                  crossAxisSpacing: 12,
+                                  childAspectRatio: 1.35,
+                                  children: [
+                                    _SignalCard(
+                                      icon: Icons.shield_rounded,
+                                      title: "Risk Level",
+                                      value: _riskLevel(),
+                                      iconColor: cyan,
+                                      showCheck: apiData["is_threat"] == false,
+                                      showAlert: apiData["is_threat"] == true,
                                     ),
+                                    _SignalCard(
+                                      icon: Icons.report_problem_rounded,
+                                      title: "Threats",
+                                      value: _threatTypes(),
+                                      iconColor: const Color(0xFF8B5CF6),
+                                      showCheck: (apiData["threat_types"]
+                                      is List) &&
+                                          (apiData["threat_types"] as List)
+                                              .isEmpty,
+                                      showAlert: (apiData["threat_types"]
+                                      is List) &&
+                                          (apiData["threat_types"] as List)
+                                              .isNotEmpty,
+                                    ),
+                                    _SignalCard(
+                                      icon: Icons.access_time_rounded,
+                                      title: "Domain Age",
+                                      value: _domainAge(),
+                                      iconColor: cyan,
+                                      showCheck: _domainAge() != "Unknown",
+                                    ),
+                                    _SignalCard(
+                                      icon: Icons.business_rounded,
+                                      title: "Registrar",
+                                      value: _registrar(),
+                                      iconColor: cyan,
+                                      showCheck: _registrar() != "Unknown",
+                                    ),
+                                  ],
+                                ),
+
+                              if (_isMediaMode)
+                                GridView.count(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  crossAxisCount: 2,
+                                  mainAxisSpacing: 12,
+                                  crossAxisSpacing: 12,
+                                  childAspectRatio: 1.35,
+                                  children: [
+                                    _SignalCard(
+                                      icon: Icons.perm_media_rounded,
+                                      title: "File Type",
+                                      value: _mediaFileType(),
+                                      iconColor: cyan,
+                                      showCheck: true,
+                                    ),
+                                    _SignalCard(
+                                      icon: Icons.fact_check_rounded,
+                                      title: "Verdict",
+                                      value: _mediaVerdict(),
+                                      iconColor: const Color(0xFF8B5CF6),
+                                      showCheck:
+                                      _mediaVerdict().toLowerCase() ==
+                                          "human",
+                                      showAlert:
+                                      _mediaVerdict().toLowerCase() !=
+                                          "human",
+                                    ),
+                                    _SignalCard(
+                                      icon: Icons.analytics_rounded,
+                                      title: "AI Confidence",
+                                      value: _mediaAiConfidence(),
+                                      iconColor: cyan,
+                                      showCheck:
+                                      _mediaVerdict().toLowerCase() ==
+                                          "human",
+                                      showAlert:
+                                      _mediaVerdict().toLowerCase() !=
+                                          "human",
+                                    ),
+                                    _SignalCard(
+                                      icon:
+                                      Icons.face_retouching_natural_rounded,
+                                      title: "Deepfake",
+                                      value: _mediaDeepfake(),
+                                      iconColor: cyan,
+                                      showCheck:
+                                      _mediaDeepfake() == "Not Detected",
+                                      showAlert: _mediaDeepfake() == "Detected",
+                                    ),
+                                  ],
+                                ),
+
+                              const SizedBox(height: 22),
+
+                              if (!_isMediaMode && _createdDate() != "Unknown")
+                                _InfoRow(
+                                  icon: Icons.calendar_today_rounded,
+                                  label: "Created Date",
+                                  value: _createdDate(),
+                                ),
+
+                              if (_isMediaMode)
+                                _InfoRow(
+                                  icon: Icons.auto_awesome_rounded,
+                                  label: "Likely Generator",
+                                  value: _mediaGenerator(),
+                                ),
+
+                              const SizedBox(height: 22),
+
+                              SizedBox(
+                                width: double.infinity,
+                                height: 70,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(999),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () => Get.back(result: true),
+                                      child: Center(
+                                        child: Lottie.asset(
+                                          "assets/images/Check_Link.json",
+                                          fit: BoxFit.contain,
+                                          repeat: true,
+                                          animate: true,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 14),
+
+                              Center(
+                                child: GestureDetector(
+                                  onTap: () {},
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.report_gmailerrorred_rounded,
+                                        color: Color(0xFFFF6B6B),
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _isMediaMode
+                                            ? "Report this Media"
+                                            : "Report this Link",
+                                        style: const TextStyle(
+                                          color: Color(0xFFFF6B6B),
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -407,376 +777,19 @@ class _ResultScreenState extends State<ResultScreen>
                           ),
                         ),
                       ),
-                    ),
 
-                  // ── Result state ─────────────────────────────────────────
-                  if (!_loading && _error == null)
-                    FadeTransition(
-                      opacity: _fadeAnim,
-                      child: SlideTransition(
-                        position: _slideAnim,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-
-                            // ── SCORE CARD (redesigned) ──────────────────
-                            Container(
-                              padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF0A2235).withOpacity(.60),
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  // CHANGE 2: border color matches score
-                                  color: scoreColor.withOpacity(0.45),
-                                  width: 1.2,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: scoreColor.withOpacity(0.08),
-                                    blurRadius: 20,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                children: [
-
-                                  // CHANGE 3: Big circular score ring
-                                  _CircularScoreRing(
-                                    score: activeScore,
-                                    color: scoreColor,
-                                    icon: _scoreIcon(activeScore,
-                                        isMedia: _isMediaMode,
-                                        humanContent: isHumanContent),
-                                  ),
-
-                                  const SizedBox(height: 14),
-
-                                  // CHANGE 4: Colored status badge pill
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 7),
-                                    decoration: BoxDecoration(
-                                      color: _badgeBgColor(activeScore),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: scoreColor.withOpacity(0.35),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      _scoreLabel(activeScore,
-                                          isMedia: _isMediaMode,
-                                          humanContent: isHumanContent),
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w800,
-                                        color: scoreColor,
-                                        letterSpacing: 0.3,
-                                      ),
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 10),
-
-                                  // Description text
-                                  Text(
-                                    _scoreDescription(activeScore,
-                                        isMedia: _isMediaMode,
-                                        humanContent: isHumanContent),
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 12.8,
-                                      height: 1.4,
-                                      color: Colors.white.withOpacity(.68),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 16),
-
-                                  // Score bar row
-                                  Row(
-                                    children: [
-                                      Text(
-                                        _isMediaMode
-                                            ? "Authenticity Score"
-                                            : "Trust Score",
-                                        style: TextStyle(
-                                          fontSize: 11.5,
-                                          color:
-                                          Colors.white.withOpacity(.60),
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                      const Spacer(),
-                                      Text(
-                                        "$activeScore%",
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: scoreColor,
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _AnimatedScoreBar(
-                                    value: activeScore / 100,
-                                    color: scoreColor,
-                                  ),
-
-                                  // CHANGE 5: Scanned input shown inside card
-                                  const SizedBox(height: 14),
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 9),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.04),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                          color: Colors.white10),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          _isMediaMode
-                                              ? Icons.image_outlined
-                                              : Icons.link_rounded,
-                                          color: cyan.withOpacity(0.7),
-                                          size: 14,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            displayInput,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              color: Colors.white
-                                                  .withOpacity(0.55),
-                                              fontSize: 11.5,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            const SizedBox(height: 22),
-
-                            // ── Key Signals heading ──────────────────────
-                            const Text(
-                              "Key Signals",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
-                            ),
-
-                            const SizedBox(height: 14),
-
-                            // ── URL signal cards ─────────────────────────
-                            if (!_isMediaMode)
-                              GridView.count(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                crossAxisCount: 2,
-                                mainAxisSpacing: 12,
-                                crossAxisSpacing: 12,
-                                childAspectRatio: 1.35,
-                                children: [
-                                  _SignalCard(
-                                    icon: Icons.shield_rounded,
-                                    title: "Risk Level",
-                                    value: _riskLevel(),
-                                    iconColor: cyan,
-                                    showCheck:
-                                    apiData["is_threat"] == false,
-                                    showAlert:
-                                    apiData["is_threat"] == true,
-                                  ),
-                                  _SignalCard(
-                                    icon: Icons.report_problem_rounded,
-                                    title: "Threats",
-                                    value: _threatTypes(),
-                                    iconColor: const Color(0xFF8B5CF6),
-                                    showCheck: (apiData["threat_types"]
-                                    is List) &&
-                                        (apiData["threat_types"] as List)
-                                            .isEmpty,
-                                    showAlert: (apiData["threat_types"]
-                                    is List) &&
-                                        (apiData["threat_types"] as List)
-                                            .isNotEmpty,
-                                  ),
-                                  _SignalCard(
-                                    icon: Icons.access_time_rounded,
-                                    title: "Domain Age",
-                                    value: _domainAge(),
-                                    iconColor: cyan,
-                                    showCheck:
-                                    _domainAge() != "Unknown",
-                                  ),
-                                  _SignalCard(
-                                    icon: Icons.business_rounded,
-                                    title: "Registrar",
-                                    value: _registrar(),
-                                    iconColor: cyan,
-                                    showCheck:
-                                    _registrar() != "Unknown",
-                                  ),
-                                ],
-                              ),
-
-                            // ── Media signal cards ───────────────────────
-                            if (_isMediaMode)
-                              GridView.count(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                crossAxisCount: 2,
-                                mainAxisSpacing: 12,
-                                crossAxisSpacing: 12,
-                                childAspectRatio: 1.35,
-                                children: [
-                                  _SignalCard(
-                                    icon: Icons.perm_media_rounded,
-                                    title: "File Type",
-                                    value: _mediaFileType(),
-                                    iconColor: cyan,
-                                    showCheck: true,
-                                  ),
-                                  _SignalCard(
-                                    icon: Icons.fact_check_rounded,
-                                    title: "Verdict",
-                                    value: _mediaVerdict(),
-                                    iconColor: const Color(0xFF8B5CF6),
-                                    showCheck: _mediaVerdict()
-                                        .toLowerCase() ==
-                                        "human",
-                                    showAlert: _mediaVerdict()
-                                        .toLowerCase() !=
-                                        "human",
-                                  ),
-                                  _SignalCard(
-                                    icon: Icons.analytics_rounded,
-                                    title: "AI Confidence",
-                                    value: _mediaAiConfidence(),
-                                    iconColor: cyan,
-                                    showCheck: _mediaVerdict()
-                                        .toLowerCase() ==
-                                        "human",
-                                    showAlert: _mediaVerdict()
-                                        .toLowerCase() !=
-                                        "human",
-                                  ),
-                                  _SignalCard(
-                                    icon: Icons
-                                        .face_retouching_natural_rounded,
-                                    title: "Deepfake",
-                                    value: _mediaDeepfake(),
-                                    iconColor: cyan,
-                                    showCheck:
-                                    _mediaDeepfake() == "Not Detected",
-                                    showAlert:
-                                    _mediaDeepfake() == "Detected",
-                                  ),
-                                ],
-                              ),
-
-                            const SizedBox(height: 22),
-
-                            // ── Extra info rows ──────────────────────────
-                            if (!_isMediaMode &&
-                                _createdDate() != "Unknown")
-                              _InfoRow(
-                                icon: Icons.calendar_today_rounded,
-                                label: "Created Date",
-                                value: _createdDate(),
-                              ),
-
-                            if (_isMediaMode)
-                              _InfoRow(
-                                icon: Icons.auto_awesome_rounded,
-                                label: "Likely Generator",
-                                value: _mediaGenerator(),
-                              ),
-
-                            const SizedBox(height: 22),
-
-                            // ── Check another link button ────────────────
-                            SizedBox(
-                              width: double.infinity,
-                              height: 70,
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(999),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    onTap: () => Get.back(),
-                                    child: Center(
-                                      child: Lottie.asset(
-                                        "assets/images/Check_Link.json",
-                                        fit: BoxFit.contain,
-                                        repeat: true,
-                                        animate: true,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(height: 14),
-
-                            // Report link
-                            Center(
-                              child: GestureDetector(
-                                onTap: () {},
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.report_gmailerrorred_rounded,
-                                      color: Color(0xFFFF6B6B),
-                                      size: 18,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      "Report this Link",
-                                      style: TextStyle(
-                                        color: Color(0xFFFF6B6B),
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                  const SizedBox(height: 10),
-                ],
+                    const SizedBox(height: 10),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-
-// ── CHANGE 6: Circular score ring widget (NEW) ────────────────────────────────
 class _CircularScoreRing extends StatefulWidget {
   const _CircularScoreRing({
     required this.score,
@@ -800,13 +813,22 @@ class _CircularScoreRingState extends State<_CircularScoreRing>
   @override
   void initState() {
     super.initState();
+
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
-    _anim = Tween<double>(begin: 0, end: widget.score / 100).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
+
+    _anim = Tween<double>(
+      begin: 0,
+      end: widget.score / 100,
+    ).animate(
+      CurvedAnimation(
+        parent: _ctrl,
+        curve: Curves.easeOut,
+      ),
     );
+
     Future.delayed(const Duration(milliseconds: 250), () {
       if (mounted) _ctrl.forward();
     });
@@ -823,13 +845,14 @@ class _CircularScoreRingState extends State<_CircularScoreRing>
     return AnimatedBuilder(
       animation: _anim,
       builder: (context, _) {
+        final visibleScore = (_anim.value * widget.score).round();
+
         return SizedBox(
           width: 110,
           height: 110,
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Outer glow ring
               Container(
                 width: 110,
                 height: 110,
@@ -844,7 +867,6 @@ class _CircularScoreRingState extends State<_CircularScoreRing>
                   ],
                 ),
               ),
-              // Progress arc
               SizedBox(
                 width: 110,
                 height: 110,
@@ -856,14 +878,13 @@ class _CircularScoreRingState extends State<_CircularScoreRing>
                   strokeCap: StrokeCap.round,
                 ),
               ),
-              // Inner content
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(widget.icon, color: widget.color, size: 22),
                   const SizedBox(height: 2),
                   Text(
-                    "${(widget.score * _anim.value).round()}",
+                    "$visibleScore",
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
@@ -889,70 +910,12 @@ class _CircularScoreRingState extends State<_CircularScoreRing>
   }
 }
 
-
-// ── Info row ─────────────────────────────────────────────────────────────────
-// CHANGE 7: Extracted as reusable widget (cleaner)
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.icon,
-    required this.label,
+class _AnimatedScoreBar extends StatefulWidget {
+  const _AnimatedScoreBar({
     required this.value,
+    required this.color,
   });
 
-  final IconData icon;
-  final String label;
-  final String value;
-
-  static const cyan = Color(0xFF2CC7FF);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: cyan, size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    color: Colors.white.withOpacity(0.45),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(.88),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-
-// ── Animated score bar ────────────────────────────────────────────────────────
-class _AnimatedScoreBar extends StatefulWidget {
-  const _AnimatedScoreBar({required this.value, required this.color});
   final double value;
   final Color color;
 
@@ -968,13 +931,22 @@ class _AnimatedScoreBarState extends State<_AnimatedScoreBar>
   @override
   void initState() {
     super.initState();
+
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
-    _anim = Tween<double>(begin: 0, end: widget.value).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
+
+    _anim = Tween<double>(
+      begin: 0,
+      end: widget.value,
+    ).animate(
+      CurvedAnimation(
+        parent: _ctrl,
+        curve: Curves.easeOut,
+      ),
     );
+
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) _ctrl.forward();
     });
@@ -1003,8 +975,6 @@ class _AnimatedScoreBarState extends State<_AnimatedScoreBar>
   }
 }
 
-
-// ── Signal card ───────────────────────────────────────────────────────────────
 class _SignalCard extends StatelessWidget {
   const _SignalCard({
     required this.icon,
@@ -1071,16 +1041,79 @@ class _SignalCard extends StatelessWidget {
             const Positioned(
               top: 0,
               right: 0,
-              child: Icon(Icons.verified_rounded,
-                  color: Color(0xFF3DDC84), size: 18),
+              child: Icon(
+                Icons.verified_rounded,
+                color: Color(0xFF3DDC84),
+                size: 18,
+              ),
             ),
           if (showAlert)
             const Positioned(
               top: 0,
               right: 0,
-              child: Icon(Icons.warning_rounded,
-                  color: Color(0xFFFF5B5B), size: 18),
+              child: Icon(
+                Icons.warning_rounded,
+                color: Color(0xFFFF5B5B),
+                size: 18,
+              ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  static const cyan = Color(0xFF2CC7FF);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: cyan, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    color: Colors.white.withOpacity(0.45),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(.88),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

@@ -10,20 +10,45 @@ class TrustScanService {
   static const String _mediaDetectApi =
       "https://backend.trustscan.online/api/media_detect";
 
-  // ── Local suspicious keyword/domain lists ──────────────────────────────────
-
   static const List<String> _suspiciousTlds = [
-    '.tk', '.ga', '.ml', '.cf', '.gq', '.xyz', '.top', '.click',
-    '.download', '.loan', '.win', '.racing', '.online', '.site',
+    '.tk',
+    '.ga',
+    '.ml',
+    '.cf',
+    '.gq',
+    '.xyz',
+    '.top',
+    '.click',
+    '.download',
+    '.loan',
+    '.win',
+    '.racing',
+    '.online',
+    '.site',
   ];
 
   static const List<String> _suspiciousKeywords = [
-    'free-money', 'claim-prize', 'winner', 'congratulations',
-    'you-won', 'verify-account', 'secure-login', 'bank-alert',
-    'account-suspended', 'urgent', 'limited-time', 'act-now',
-    'click-here', 'confirm-identity', 'password-reset',
-    'paypal-secure', 'amazon-verify', 'apple-id-locked',
-    'iphone-winner', 'gift-card', 'crypto-reward',
+    'free-money',
+    'claim-prize',
+    'winner',
+    'congratulations',
+    'you-won',
+    'verify-account',
+    'secure-login',
+    'bank-alert',
+    'account-suspended',
+    'urgent',
+    'limited-time',
+    'act-now',
+    'click-here',
+    'confirm-identity',
+    'password-reset',
+    'paypal-secure',
+    'amazon-verify',
+    'apple-id-locked',
+    'iphone-winner',
+    'gift-card',
+    'crypto-reward',
   ];
 
   static const List<String> _scamPhrases = [
@@ -46,26 +71,33 @@ class TrustScanService {
   ];
 
   static const List<String> _trustedDomains = [
-    'google.com', 'youtube.com', 'facebook.com', 'instagram.com',
-    'twitter.com', 'x.com', 'microsoft.com', 'apple.com',
-    'amazon.com', 'wikipedia.org', 'github.com', 'stackoverflow.com',
-    'linkedin.com', 'reddit.com', 'netflix.com', 'spotify.com',
-    'whatsapp.com', 'telegram.org', 'dropbox.com', 'adobe.com',
+    'google.com',
+    'youtube.com',
+    'facebook.com',
+    'instagram.com',
+    'twitter.com',
+    'x.com',
+    'microsoft.com',
+    'apple.com',
+    'amazon.com',
+    'wikipedia.org',
+    'github.com',
+    'stackoverflow.com',
+    'linkedin.com',
+    'reddit.com',
+    'netflix.com',
+    'spotify.com',
+    'whatsapp.com',
+    'telegram.org',
+    'dropbox.com',
+    'adobe.com',
   ];
 
-  // ── Local scoring engine ───────────────────────────────────────────────────
-
-  /// Returns a local risk assessment map:
-  /// { "risk_level": "LOW"|"MEDIUM"|"HIGH"|"CRITICAL",
-  ///   "is_threat": bool,
-  ///   "threat_types": [...],
-  ///   "local_score": int }
   static Map<String, dynamic> _localAnalyze(String input) {
     final lower = input.toLowerCase();
     int riskPoints = 0;
     final List<String> threats = [];
 
-    // 1. Check trusted domains → immediately safe
     for (final domain in _trustedDomains) {
       if (lower.contains(domain)) {
         return {
@@ -78,7 +110,6 @@ class TrustScanService {
       }
     }
 
-    // 2. Suspicious TLDs
     for (final tld in _suspiciousTlds) {
       if (lower.contains(tld)) {
         riskPoints += 35;
@@ -87,16 +118,14 @@ class TrustScanService {
       }
     }
 
-    // 3. Suspicious keywords in URL/text
     for (final kw in _suspiciousKeywords) {
       if (lower.contains(kw)) {
         riskPoints += 20;
         threats.add("Suspicious keyword: $kw");
-        if (riskPoints >= 60) break; // cap early
+        if (riskPoints >= 60) break;
       }
     }
 
-    // 4. Scam phrases in text
     for (final phrase in _scamPhrases) {
       if (lower.contains(phrase)) {
         riskPoints += 30;
@@ -105,14 +134,12 @@ class TrustScanService {
       }
     }
 
-    // 5. IP address as URL (very suspicious)
     final ipRegex = RegExp(r'https?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}');
     if (ipRegex.hasMatch(lower)) {
       riskPoints += 40;
       threats.add("IP address used as domain");
     }
 
-    // 6. Multiple subdomains (e.g. secure.paypal.login.evil.com)
     final urlRegex = RegExp(r'https?://([^/\s]+)');
     final urlMatch = urlRegex.firstMatch(lower);
     if (urlMatch != null) {
@@ -124,17 +151,22 @@ class TrustScanService {
       }
     }
 
-    // 7. Urgency words
-    final urgencyWords = ['urgent', 'immediately', 'expires', 'suspended', 'blocked'];
-    for (final w in urgencyWords) {
-      if (lower.contains(w)) {
+    final urgencyWords = [
+      'urgent',
+      'immediately',
+      'expires',
+      'suspended',
+      'blocked',
+    ];
+
+    for (final word in urgencyWords) {
+      if (lower.contains(word)) {
         riskPoints += 15;
         threats.add("Urgency language");
         break;
       }
     }
 
-    // ── Convert points to risk level ─────────────────────────────────────────
     riskPoints = riskPoints.clamp(0, 100);
 
     String riskLevel;
@@ -167,9 +199,6 @@ class TrustScanService {
     };
   }
 
-  // ── Merge API + local results ──────────────────────────────────────────────
-
-  /// If API returns LOW for everything, override with local analysis
   static Map<String, dynamic> _mergeResults(
       Map<String, dynamic> apiResult,
       Map<String, dynamic> localResult,
@@ -178,53 +207,58 @@ class TrustScanService {
     (apiResult["risk_level"] ?? "LOW").toString().toUpperCase();
     final bool apiThreat = apiResult["is_threat"] == true;
 
-    // If API already detected a threat → trust API
     if (apiThreat || apiRisk == "HIGH" || apiRisk == "CRITICAL") {
       return apiResult;
     }
 
-    // If local analysis found threats but API said LOW → use local
     final bool localThreat = localResult["is_threat"] == true;
     final String localRisk =
     (localResult["risk_level"] ?? "LOW").toString().toUpperCase();
 
     if (localThreat || localRisk == "HIGH" || localRisk == "CRITICAL") {
       return {
-        ...apiResult, // keep API fields (domain_age, registrar etc.)
+        ...apiResult,
         "risk_level": localResult["risk_level"],
         "is_threat": localResult["is_threat"],
         "threat_types": localResult["threat_types"],
-        "_source": "local_override", // debug field
+        "local_score": localResult["local_score"],
+        "_source": "local_override",
       };
     }
 
-    // MEDIUM: take the worse of the two
     if (localRisk == "MEDIUM" && apiRisk == "LOW") {
       return {
         ...apiResult,
         "risk_level": "MEDIUM",
         "is_threat": false,
         "threat_types": localResult["threat_types"],
+        "local_score": localResult["local_score"],
         "_source": "local_medium",
       };
     }
 
-    // Both agree → return API result as-is
     return apiResult;
   }
 
-  // ── Score calculator (shared logic) ───────────────────────────────────────
-
   static int computeTrustScore(Map<String, dynamic> result) {
+    final directScore = result["trust_score"] ?? result["score"];
+    if (directScore != null) {
+      final parsed = int.tryParse(
+        directScore.toString().replaceAll("%", "").trim(),
+      );
+      if (parsed != null) return parsed.clamp(0, 100);
+    }
+
     final String riskLevel =
     (result["risk_level"] ?? "LOW").toString().toUpperCase();
     final bool threat = result["is_threat"] == true;
 
-    // If local_score was computed, use it for more precise display
     if (result.containsKey("local_score") &&
         (result["_source"] == "local_override" ||
-            result["_source"] == "local_medium")) {
-      return (result["local_score"] as int).clamp(0, 100);
+            result["_source"] == "local_medium" ||
+            result["_source"] == "local_fallback")) {
+      final local = result["local_score"];
+      if (local is int) return local.clamp(0, 100);
     }
 
     switch (riskLevel) {
@@ -241,38 +275,173 @@ class TrustScanService {
     }
   }
 
-  // ── Public API methods ─────────────────────────────────────────────────────
+  static Map<String, dynamic> parseMediaResult(
+      Map<String, dynamic> raw, {
+        File? file,
+      }) {
+    Map<String, dynamic> det = {};
+
+    if (raw["detection"] is Map) {
+      det = Map<String, dynamic>.from(raw["detection"] as Map);
+    } else if (raw["result"] is Map) {
+      det = Map<String, dynamic>.from(raw["result"] as Map);
+    } else if (raw["data"] is Map) {
+      det = Map<String, dynamic>.from(raw["data"] as Map);
+    } else {
+      det = Map<String, dynamic>.from(raw);
+    }
+
+    double aiConfidence = 0.0;
+    final rawConf = det["ai_confidence"] ??
+        det["confidence"] ??
+        det["ai_score"] ??
+        det["fake_probability"] ??
+        raw["ai_confidence"] ??
+        raw["confidence"] ??
+        raw["ai_score"];
+
+    if (rawConf != null) {
+      final confStr = rawConf.toString().replaceAll("%", "").trim();
+      final parsed = double.tryParse(confStr) ?? 0.0;
+      aiConfidence = parsed > 1 && parsed <= 100 ? parsed : parsed * 100;
+      if (parsed > 1) aiConfidence = parsed;
+    }
+
+    bool isAiGenerated = false;
+    final rawAi = det["is_ai_generated"] ??
+        det["ai_generated"] ??
+        det["is_fake"] ??
+        raw["is_ai_generated"] ??
+        raw["ai_generated"];
+
+    if (rawAi == true ||
+        rawAi == 1 ||
+        rawAi.toString().toLowerCase() == "true") {
+      isAiGenerated = true;
+    }
+
+    bool isDeepfake = false;
+    final rawDf = det["is_deepfake"] ??
+        det["deepfake"] ??
+        raw["is_deepfake"] ??
+        raw["deepfake"];
+
+    if (rawDf == true ||
+        rawDf == 1 ||
+        rawDf.toString().toLowerCase() == "true") {
+      isDeepfake = true;
+    }
+
+    String verdict =
+        det["verdict"]?.toString() ?? raw["verdict"]?.toString() ?? "";
+
+    final lowerVerdict = verdict.toLowerCase();
+    if (lowerVerdict.contains("ai") ||
+        lowerVerdict.contains("fake") ||
+        lowerVerdict.contains("deepfake") ||
+        lowerVerdict.contains("manipulated")) {
+      isAiGenerated = true;
+    }
+
+    if (aiConfidence >= 50) {
+      isAiGenerated = true;
+    }
+
+    if (verdict.trim().isEmpty) {
+      verdict = isAiGenerated || isDeepfake ? "AI Generated" : "Human";
+    }
+
+    String generatedBy = det["generated_by"]?.toString() ??
+        det["generator"]?.toString() ??
+        raw["generated_by"]?.toString() ??
+        raw["generator"]?.toString() ??
+        "Unknown";
+
+    int authenticityScore = 100 - aiConfidence.round();
+    authenticityScore = authenticityScore.clamp(0, 100);
+
+    String fileName = raw["file_name"]?.toString() ??
+        det["file_name"]?.toString() ??
+        "";
+
+    if (fileName.isEmpty && file != null) {
+      fileName = file.path.split('/').last;
+    }
+
+    final ext = fileName.split('.').last.toLowerCase();
+
+    String fileType = raw["file_type"]?.toString() ??
+        det["file_type"]?.toString() ??
+        "";
+
+    if (fileType.isEmpty || fileType == "Unknown") {
+      if (["mp4", "mov", "avi", "mkv", "webm"].contains(ext)) {
+        fileType = "video";
+      } else if (["jpg", "jpeg", "png", "webp", "gif"].contains(ext)) {
+        fileType = "image";
+      } else {
+        fileType = "media";
+      }
+    }
+
+    return {
+      "status": true,
+      "detection": {
+        "is_ai_generated": isAiGenerated,
+        "is_deepfake": isDeepfake,
+        "ai_confidence": "${aiConfidence.toStringAsFixed(1)}%",
+        "verdict": verdict,
+        "generated_by": generatedBy,
+      },
+      "file_type": fileType,
+      "file_name": fileName,
+      "authenticity_score": authenticityScore,
+      "is_human_content": !isAiGenerated && !isDeepfake,
+      "verdict": verdict,
+      "ai_confidence": "${aiConfidence.toStringAsFixed(1)}%",
+      "generated_by": generatedBy,
+    };
+  }
 
   static Future<Map<String, dynamic>> checkUrl({
     required int userId,
     required String url,
   }) async {
-    // Run local analysis immediately
     final localResult = _localAnalyze(url);
 
     try {
-      final response = await http.post(
+      final response = await http
+          .post(
         Uri.parse(_checkUrlApi),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"user_id": userId, "url": url}),
-      );
+        body: jsonEncode({
+          "user_id": userId,
+          "url": url,
+        }),
+      )
+          .timeout(const Duration(seconds: 15));
 
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final decoded = jsonDecode(response.body);
+      final data = decoded is Map<String, dynamic>
+          ? decoded
+          : Map<String, dynamic>.from(decoded as Map);
 
       if (response.statusCode == 200) {
-        // Merge API + local
-        return _mergeResults(data, localResult);
+        return {
+          ..._mergeResults(data, localResult),
+          "url": url,
+        };
       } else {
         throw Exception(data["message"] ?? "API Error: ${response.statusCode}");
       }
-    } catch (_) {
-      // If API fails entirely, fall back to local-only result
+    } catch (e) {
       return {
         ...localResult,
         "_source": "local_fallback",
         "domain_age": "Unknown",
         "registrar": "Unknown",
         "created_date": "Unknown",
+        "url": url,
       };
     }
   }
@@ -281,23 +450,64 @@ class TrustScanService {
     required int userId,
     required File file,
   }) async {
-    final request = http.MultipartRequest(
-      "POST",
-      Uri.parse(_mediaDetectApi),
-    );
+    try {
+      final request = http.MultipartRequest(
+        "POST",
+        Uri.parse(_mediaDetectApi),
+      );
 
-    request.fields["user_id"] = userId.toString();
-    request.files.add(await http.MultipartFile.fromPath("file", file.path));
+      request.fields["user_id"] = userId.toString();
+      request.files.add(await http.MultipartFile.fromPath("file", file.path));
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
+      final streamedResponse =
+      await request.send().timeout(const Duration(seconds: 30));
+      final response = await http.Response.fromStream(streamedResponse);
 
-    final data = jsonDecode(response.body);
+      print("MEDIA DETECT STATUS: ${response.statusCode}");
+      print("MEDIA DETECT BODY: ${response.body}");
 
-    if (response.statusCode == 200) {
-      return data;
-    } else {
-      throw Exception(data["message"] ?? "API Error: ${response.statusCode}");
+      if (response.statusCode == 200) {
+        final raw = jsonDecode(response.body);
+        Map<String, dynamic> rawMap = {};
+
+        if (raw is Map<String, dynamic>) {
+          rawMap = raw;
+        } else if (raw is Map) {
+          rawMap = Map<String, dynamic>.from(raw);
+        }
+
+        return parseMediaResult(rawMap, file: file);
+      }
+
+      return _mediaFallback(file);
+    } catch (e) {
+      print("MEDIA DETECT ERROR: $e");
+      return _mediaFallback(file);
     }
+  }
+
+  static Map<String, dynamic> _mediaFallback(File file) {
+    final fileName = file.path.split('/').last;
+    final ext = fileName.split('.').last.toLowerCase();
+    final isVideo = ['mp4', 'mov', 'avi', 'mkv', 'webm'].contains(ext);
+
+    return {
+      "status": false,
+      "detection": {
+        "is_ai_generated": false,
+        "is_deepfake": false,
+        "ai_confidence": "0.0%",
+        "verdict": "Unable to Analyze",
+        "generated_by": "Unknown",
+      },
+      "file_type": isVideo ? "video" : "image",
+      "file_name": fileName,
+      "authenticity_score": 50,
+      "is_human_content": true,
+      "verdict": "Unable to Analyze",
+      "ai_confidence": "0.0%",
+      "generated_by": "Unknown",
+      "_source": "local_fallback",
+    };
   }
 }

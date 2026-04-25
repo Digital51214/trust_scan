@@ -485,16 +485,7 @@ class DeleteAccountScreen extends StatelessWidget {
                                 "assets/images/Delete_Buttons.json",
                                 fit: BoxFit.contain,
                               ),
-                              const Center(
-                                child: Text(
-                                  "Erase Identity",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                              ),
+
                             ],
                           ),
                         ),
