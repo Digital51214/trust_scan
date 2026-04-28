@@ -196,13 +196,12 @@ class _HomeScreenState extends State<HomeScreen>
     final hasText = inputCtrl.text.trim().isNotEmpty;
 
     return Scaffold(
+
       body: Stack(
         fit: StackFit.expand,
         children: [
           // ── Video Background ──────────────────────────────────
-          Positioned.fill(child: VideoBackground(
-
-          )),
+          Positioned.fill(child: VideoBackground()),
 
           // ── Linear overlay ────────────────────────────────────
           Positioned.fill(

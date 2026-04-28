@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:social_saver/Bottom%20Navigation%20Bar/video_background.dart';
 import 'package:video_player/video_player.dart';
 
@@ -16,19 +15,18 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen>
-    with WidgetsBindingObserver, RouteAware {
+    with WidgetsBindingObserver {
   VideoPlayerController? _bgVideoController;
 
   bool isLoading = true;
   String errorMsg = "";
   List<Map<String, dynamic>> items = [];
 
-  bool _isVisible = false;
+  bool _isVisible = true;
 
   @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addObserver(this);
 
     _bgVideoController =
@@ -65,35 +63,8 @@ class _HistoryScreenState extends State<HistoryScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
     final route = ModalRoute.of(context);
-
-    if (route != null && route.isCurrent) {
-      if (!_isVisible) {
-        _isVisible = true;
-      } else {
-        _loadHistory();
-      }
-    } else {
-      _isVisible = false;
-    }
-  }
-
-  bool _asBool(dynamic value) {
-    if (value == true || value == 1) return true;
-    if (value == false || value == 0 || value == null) return false;
-
-    final text = value.toString().trim().toLowerCase();
-
-    return text == "true" ||
-        text == "1" ||
-        text == "yes" ||
-        text == "y" ||
-        text == "threat" ||
-        text == "unsafe" ||
-        text == "harmful" ||
-        text == "malicious" ||
-        text == "dangerous";
+    _isVisible = route?.isCurrent ?? true;
   }
 
   Widget _videoBackground() {
@@ -121,12 +92,15 @@ class _HistoryScreenState extends State<HistoryScreen>
     setState(() {
       isLoading = true;
       errorMsg = "";
+      items = [];
     });
 
     final session = SessionController.instance;
     session.loadSession();
 
     final int userId = session.userId.value;
+
+    debugPrint("HISTORY USER ID: $userId");
 
     if (userId <= 0) {
       if (!mounted) return;
@@ -135,7 +109,6 @@ class _HistoryScreenState extends State<HistoryScreen>
         isLoading = false;
         errorMsg = "User not logged in";
       });
-
       return;
     }
 
@@ -143,34 +116,38 @@ class _HistoryScreenState extends State<HistoryScreen>
 
     if (!mounted) return;
 
+    debugPrint("HISTORY RESULT: $result");
+
     final ok = result["status"] == true;
-    final msg = (result["message"] ?? "").toString();
+    final data = result["data"];
 
     if (!ok) {
       setState(() {
         isLoading = false;
-        errorMsg = msg.isEmpty ? "Failed to fetch history" : msg;
+        errorMsg = (result["message"] ?? "Failed to fetch history").toString();
       });
-
       return;
     }
 
-    final data = result["data"];
-
-    if (data is List) {
-      setState(() {
-        items = data
-            .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
-        isLoading = false;
-      });
-    } else {
+    if (data is! List) {
       setState(() {
         isLoading = false;
-        errorMsg = "Invalid history response";
+        errorMsg = "History data not found";
       });
+      return;
     }
+
+    final loadedItems = data
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+
+    debugPrint("HISTORY ITEMS LENGTH: ${loadedItems.length}");
+
+    setState(() {
+      items = loadedItems;
+      isLoading = false;
+    });
   }
 
   Map<String, dynamic> _normalizedScan(Map<String, dynamic> it) {
@@ -207,8 +184,8 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   Map<String, dynamic> _detectionMap(Map<String, dynamic> it) {
     final data = _normalizedScan(it);
-    final det = data["detection"];
 
+    final det = data["detection"];
     if (det is Map<String, dynamic>) return det;
     if (det is Map) return Map<String, dynamic>.from(det);
 
@@ -219,68 +196,40 @@ class _HistoryScreenState extends State<HistoryScreen>
     return data;
   }
 
-  List _threatTypesList(Map<String, dynamic> it) {
-    final data = _normalizedScan(it);
-    final threatTypes = data["threat_types"] ?? it["threat_types"];
+  bool _asBool(dynamic value) {
+    if (value == true || value == 1) return true;
+    if (value == false || value == 0 || value == null) return false;
 
-    if (threatTypes is List) return threatTypes;
+    final text = value.toString().trim().toLowerCase();
 
-    if (threatTypes is String) {
-      final text = threatTypes.trim();
-
-      if (text.isEmpty ||
-          text.toLowerCase() == "no threats" ||
-          text.toLowerCase() == "none" ||
-          text.toLowerCase() == "[]") {
-        return [];
-      }
-
-      try {
-        final decoded = jsonDecode(text);
-        if (decoded is List) return decoded;
-      } catch (_) {}
-
-      return [text];
-    }
-
-    return [];
+    return text == "true" ||
+        text == "1" ||
+        text == "yes" ||
+        text == "y" ||
+        text == "threat" ||
+        text == "unsafe" ||
+        text == "harmful" ||
+        text == "malicious" ||
+        text == "dangerous";
   }
 
-  String _riskLevelText(Map<String, dynamic> it) {
+  String _scanText(Map<String, dynamic> it) {
     final data = _normalizedScan(it);
 
-    return (data["risk_level"] ??
-        it["risk_level"] ??
-        data["status"] ??
-        it["status"] ??
-        "")
-        .toString()
-        .trim()
-        .toUpperCase();
-  }
-
-  bool _urlIsThreat(Map<String, dynamic> it) {
-    final data = _normalizedScan(it);
-    final riskLevel = _riskLevelText(it);
-    final threatTypes = _threatTypesList(it);
-
-    final threatFlag = _asBool(data["is_threat"]) ||
-        _asBool(it["is_threat"]) ||
-        _asBool(data["threat"]) ||
-        _asBool(it["threat"]) ||
-        _asBool(data["unsafe"]) ||
-        _asBool(it["unsafe"]) ||
-        _asBool(data["harmful"]) ||
-        _asBool(it["harmful"]);
-
-    final harmfulStatus = riskLevel == "HIGH" ||
-        riskLevel == "CRITICAL" ||
-        riskLevel == "UNSAFE" ||
-        riskLevel == "HARMFUL" ||
-        riskLevel == "MALICIOUS" ||
-        riskLevel == "DANGEROUS";
-
-    return threatFlag || harmfulStatus || threatTypes.isNotEmpty;
+    return [
+      it["scan_result"],
+      data["scan_result"],
+      it["risk_level"],
+      data["risk_level"],
+      it["is_threat"],
+      data["is_threat"],
+      it["threat_types"],
+      data["threat_types"],
+      it["status"],
+      data["status"],
+      it["message"],
+      data["message"],
+    ].where((e) => e != null).join(" ").toLowerCase();
   }
 
   String _scanType(Map<String, dynamic> it) {
@@ -323,19 +272,6 @@ class _HistoryScreenState extends State<HistoryScreen>
       return "image";
     }
 
-    final scanResult = (it["scan_result"] ?? "").toString().toLowerCase();
-
-    if (scanResult.contains("ai_confidence") ||
-        scanResult.contains("deepfake") ||
-        scanResult.contains("is_ai_generated") ||
-        scanResult.contains("generated_by")) {
-      if (fileName.contains("video") || fileType.contains("video")) {
-        return "video";
-      }
-
-      return "image";
-    }
-
     if (url.isNotEmpty && (url.startsWith("http") || url.contains("."))) {
       return "url";
     }
@@ -343,33 +279,197 @@ class _HistoryScreenState extends State<HistoryScreen>
     return "url";
   }
 
-  int _historyScore(Map<String, dynamic> it) {
-    final type = _scanType(it);
-    final data = _normalizedScan(it);
-    final det = _detectionMap(it);
+  int _extractRiskScore(Map<String, dynamic> it) {
+    final text = _scanText(it);
 
-    final directScore = data["authenticity_score"] ??
-        it["authenticity_score"] ??
-        data["trust_score"] ??
-        it["trust_score"] ??
-        data["score"] ??
-        it["score"];
+    final match = RegExp(
+      r'risk\s*score\s*:\s*(\d+)',
+      caseSensitive: false,
+    ).firstMatch(text);
 
-    if (directScore != null) {
-      final parsed = int.tryParse(
-        directScore.toString().replaceAll("%", "").trim(),
-      );
+    if (match != null) {
+      return int.tryParse(match.group(1) ?? "") ?? 0;
+    }
 
-      if (parsed != null) {
-        if (type == "url" && _urlIsThreat(it) && parsed >= 70) {
-          return 30;
-        }
+    return 0;
+  }
 
-        return parsed.clamp(0, 100);
+  int _localUrlScore(String url) {
+    final lower = url.toLowerCase();
+
+    int riskPoints = 0;
+
+    const suspiciousTlds = [
+      '.tk',
+      '.ga',
+      '.ml',
+      '.cf',
+      '.gq',
+      '.xyz',
+      '.top',
+      '.click',
+      '.download',
+      '.loan',
+      '.win',
+      '.racing',
+      '.online',
+      '.site',
+    ];
+
+    const suspiciousKeywords = [
+      'free-money',
+      'claim-prize',
+      'winner',
+      'congratulations',
+      'you-won',
+      'verify-account',
+      'secure-login',
+      'bank-alert',
+      'account-suspended',
+      'urgent',
+      'limited-time',
+      'act-now',
+      'click-here',
+      'confirm-identity',
+      'password-reset',
+      'paypal-secure',
+      'amazon-verify',
+      'apple-id-locked',
+      'iphone-winner',
+      'gift-card',
+      'crypto-reward',
+    ];
+
+    const scamPhrases = [
+      'you have won',
+      'congratulations you',
+      'claim your prize',
+      'click here to claim',
+      'your account has been suspended',
+      'verify your account',
+      'urgent action required',
+      'your bank account',
+      'limited time offer',
+      'act now',
+      'free iphone',
+      'send money',
+      'wire transfer',
+      'nigerian prince',
+      'lottery winner',
+      'selected as winner',
+    ];
+
+    const trustedDomains = [
+      'google.com',
+      'youtube.com',
+      'facebook.com',
+      'instagram.com',
+      'twitter.com',
+      'x.com',
+      'microsoft.com',
+      'apple.com',
+      'amazon.com',
+      'wikipedia.org',
+      'github.com',
+      'stackoverflow.com',
+      'linkedin.com',
+      'reddit.com',
+      'netflix.com',
+      'spotify.com',
+      'whatsapp.com',
+      'telegram.org',
+      'dropbox.com',
+      'adobe.com',
+    ];
+
+    for (final domain in trustedDomains) {
+      if (lower.contains(domain)) {
+        return 92;
       }
     }
 
+    for (final tld in suspiciousTlds) {
+      if (lower.contains(tld)) {
+        riskPoints += 35;
+        break;
+      }
+    }
+
+    for (final keyword in suspiciousKeywords) {
+      if (lower.contains(keyword)) {
+        riskPoints += 20;
+        if (riskPoints >= 80) break;
+      }
+    }
+
+    for (final phrase in scamPhrases) {
+      if (lower.contains(phrase)) {
+        riskPoints += 30;
+        if (riskPoints >= 90) break;
+      }
+    }
+
+    final ipRegex = RegExp(r'https?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}');
+    if (ipRegex.hasMatch(lower)) {
+      riskPoints += 40;
+    }
+
+    final urlRegex = RegExp(r'https?://([^/\s]+)');
+    final urlMatch = urlRegex.firstMatch(lower);
+
+    if (urlMatch != null) {
+      final host = urlMatch.group(1) ?? '';
+      final parts = host.split('.');
+
+      if (parts.length >= 5) {
+        riskPoints += 25;
+      }
+    }
+
+    const urgencyWords = [
+      'urgent',
+      'immediately',
+      'expires',
+      'suspended',
+      'blocked',
+    ];
+
+    for (final word in urgencyWords) {
+      if (lower.contains(word)) {
+        riskPoints += 15;
+        break;
+      }
+    }
+
+    riskPoints = riskPoints.clamp(0, 100);
+
+    if (riskPoints >= 70) return 10;
+    if (riskPoints >= 45) return 25;
+    if (riskPoints >= 20) return 60;
+
+    return 90;
+  }
+
+  int _historyScore(Map<String, dynamic> it) {
+    final type = _scanType(it);
+
     if (type == "image" || type == "video") {
+      final data = _normalizedScan(it);
+      final det = _detectionMap(it);
+
+      final directScore = data["authenticity_score"] ??
+          it["authenticity_score"] ??
+          data["score"] ??
+          it["score"];
+
+      if (directScore != null) {
+        final parsed = int.tryParse(
+          directScore.toString().replaceAll("%", "").trim(),
+        );
+
+        if (parsed != null) return parsed.clamp(0, 100);
+      }
+
       final rawConf = det["ai_confidence"] ??
           det["confidence"] ??
           det["ai_score"] ??
@@ -384,41 +484,85 @@ class _HistoryScreenState extends State<HistoryScreen>
       return (100 - conf).round().clamp(0, 100);
     }
 
-    final riskLevel = _riskLevelText(it);
-    final isThreat = _urlIsThreat(it);
+    final url = (it["url"] ?? "").toString();
 
-    switch (riskLevel) {
-      case "LOW":
-      case "SAFE":
-      case "CLEAN":
-        return isThreat ? 30 : 90;
+    if (url.isNotEmpty) {
+      final localScore = _localUrlScore(url);
 
-      case "MEDIUM":
-      case "SUSPICIOUS":
-        return 60;
-
-      case "HIGH":
-      case "UNSAFE":
-      case "HARMFUL":
-      case "MALICIOUS":
-      case "DANGEROUS":
-        return 25;
-
-      case "CRITICAL":
-        return 10;
-
-      default:
-        return isThreat ? 30 : 80;
+      if (localScore < 70) {
+        return localScore;
+      }
     }
+
+    final text = _scanText(it)
+        .toLowerCase()
+        .replaceAll("\n", " ")
+        .replaceAll(RegExp(r'\s+'), " ")
+        .trim();
+
+    final status = (it["status"] ?? "").toString().toLowerCase().trim();
+
+    final riskScore = _extractRiskScore(it);
+
+    if (riskScore > 0) {
+      if (riskScore >= 70) return 25;
+      if (riskScore >= 40) return 60;
+      return 90;
+    }
+
+    if (text.contains("risk level: critical") ||
+        text.contains("risk level critical") ||
+        text.contains("risk_level: critical") ||
+        text.contains("critical") ||
+        text.contains("risk level: high") ||
+        text.contains("risk level high") ||
+        text.contains("risk_level: high") ||
+        text.contains("phishing: 1") ||
+        text.contains("malicious") ||
+        text.contains("dangerous") ||
+        text.contains("unsafe")) {
+      return 20;
+    }
+
+    if (text.contains("risk level: medium") ||
+        text.contains("risk level medium") ||
+        text.contains("risk_level: medium") ||
+        text.contains("medium") ||
+        text.contains("suspicious") ||
+        text.contains("suspecious")) {
+      return 55;
+    }
+
+    if (status == "malicious" ||
+        status == "unsafe" ||
+        status == "dangerous" ||
+        status == "threat") {
+      return 20;
+    }
+
+    if (status == "safe" || status == "clean") {
+      return 90;
+    }
+
+    if (text.contains("risk level: low") ||
+        text.contains("risk level low") ||
+        text.contains("risk_level: low") ||
+        text.contains("low") ||
+        text.contains("safe") ||
+        text.contains("clean") ||
+        text.contains("no threats detected") ||
+        text.contains("no threats")) {
+      return 90;
+    }
+
+    return 80;
   }
 
   bool _isHighRisk(Map<String, dynamic> it) {
     final type = _scanType(it);
     final score = _historyScore(it);
 
-    if (type == "url") {
-      return score < 70 || _urlIsThreat(it);
-    }
+    if (type == "url") return score < 40;
 
     final data = _normalizedScan(it);
     final det = _detectionMap(it);
@@ -437,6 +581,43 @@ class _HistoryScreenState extends State<HistoryScreen>
         _asBool(det["is_deepfake"]) || _asBool(data["is_deepfake"]);
 
     return score < 50 || isAi || isDeepfake;
+  }
+
+  String _statusText(Map<String, dynamic> it) {
+    final type = _scanType(it);
+    final score = _historyScore(it);
+
+    if (type == "url") {
+      if (score >= 70) return "Safe";
+      if (score >= 40) return "Suspicious";
+      return "High Risk";
+    }
+
+    final highRisk = _isHighRisk(it);
+    if (!highRisk && score >= 50) return "Authentic";
+    return "AI / Suspicious";
+  }
+
+  Color _statusColor(Map<String, dynamic> it) {
+    final score = _historyScore(it);
+
+    if (score >= 70) return const Color(0xFF3DDC84);
+    if (score >= 40) return const Color(0xFFFFC107);
+    return const Color(0xFFFF5B5B);
+  }
+
+  Color _statusBg(Map<String, dynamic> it) {
+    final score = _historyScore(it);
+
+    if (score >= 70) {
+      return const Color(0xFF3DDC84).withOpacity(0.12);
+    }
+
+    if (score >= 40) {
+      return const Color(0xFFFFC107).withOpacity(0.12);
+    }
+
+    return const Color(0xFFFF5B5B).withOpacity(0.12);
   }
 
   String _cardTitle(Map<String, dynamic> it) {
@@ -485,51 +666,24 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   IconData _cardIcon(Map<String, dynamic> it, bool highRisk) {
     final type = _scanType(it);
+    final score = _historyScore(it);
 
-    if (highRisk) {
-      return type == "url"
-          ? Icons.warning_rounded
-          : Icons.smart_display_rounded;
+    if (type == "video") {
+      if (score >= 70) return Icons.videocam_rounded;           // green – authentic video
+      if (score >= 40) return Icons.video_call_rounded;         // yellow – suspicious video
+      return Icons.videocam_off_rounded;                        // red – fake/AI video
     }
 
-    return type == "video"
-        ? Icons.videocam_rounded
-        : type == "image"
-        ? Icons.image_rounded
-        : Icons.verified_user_rounded;
-  }
-
-  String _statusText(Map<String, dynamic> it) {
-    final type = _scanType(it);
-    final score = _historyScore(it);
-    final highRisk = _isHighRisk(it);
-
-    if (type == "url") {
-      if (_urlIsThreat(it)) {
-        return score >= 40 ? "Suspicious" : "High Risk";
-      }
-
-      if (score >= 70) return "Safe";
-      if (score >= 40) return "Suspicious";
-      return "High Risk";
+    if (type == "image") {
+      if (score >= 70) return Icons.image_rounded;              // green – authentic image
+      if (score >= 40) return Icons.image_search_rounded;       // yellow – suspicious image
+      return Icons.hide_image_rounded;                          // red – fake/AI image
     }
 
-    if (!highRisk && score >= 50) return "Authentic";
-    return "AI / Suspicious";
-  }
-
-  Color _statusColor(Map<String, dynamic> it) {
-    final score = _historyScore(it);
-    final highRisk = _isHighRisk(it);
-
-    if (highRisk) return const Color(0xFFE85B5B);
-    if (score >= 70) return const Color(0xFF3DDC84);
-    return const Color(0xFF2CC7FF);
-  }
-
-  Color _statusBg(Map<String, dynamic> it) {
-    final highRisk = _isHighRisk(it);
-    return highRisk ? const Color(0xFF3A2A3A) : const Color(0xFF10344B);
+    // URL / Link
+    if (score >= 70) return Icons.verified_user_rounded;        // green – safe link
+    if (score >= 40) return Icons.gpp_maybe_rounded;            // yellow – suspicious link
+    return Icons.gpp_bad_rounded;                               // red – dangerous link
   }
 
   @override
@@ -540,9 +694,10 @@ class _HistoryScreenState extends State<HistoryScreen>
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
+
         fit: StackFit.expand,
         children: [
-          _videoBackground(),
+          Positioned.fill(child: VideoBackground()),
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -567,7 +722,6 @@ class _HistoryScreenState extends State<HistoryScreen>
                 ],
               ),
             ),
-            child: VideoBackground(),
           ),
           SafeArea(
             child: Column(
@@ -781,13 +935,16 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   Widget _buildCard(Map<String, dynamic> it, Color cyan) {
-    final highRisk = _isHighRisk(it);
     final score = _historyScore(it);
+    final highRisk = score < 40;
 
     final iconBg =
     highRisk ? const Color(0xFF1B2F47) : const Color(0xFF102E45);
-    final iconColor =
-    highRisk ? const Color(0xFFE85B5B) : const Color(0xFF2CC7FF);
+    final iconColor = score >= 70
+        ? const Color(0xFF3DDC84)   // green  – safe / authentic
+        : score >= 40
+        ? const Color(0xFFFFC107)   // yellow – suspicious
+        : const Color(0xFFFF5B5B); // red    – high risk
 
     final tagText = _statusText(it);
     final tagBg = _statusBg(it);
@@ -808,7 +965,7 @@ class _HistoryScreenState extends State<HistoryScreen>
       tagText: tagText,
       tagBg: tagBg,
       tagTextColor: tagTextColor,
-      borderColor: highRisk ? const Color(0xFFE85B5B) : cyan,
+      borderColor: tagTextColor,
     );
   }
 }
