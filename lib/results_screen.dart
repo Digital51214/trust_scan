@@ -261,6 +261,258 @@ class _ResultScreenState extends State<ResultScreen>
     );
   }
 
+  // ─────────────────────────────────────────────
+  //  REPORT DIALOG
+  // ─────────────────────────────────────────────
+
+  void _showReportDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0A2235),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: const Color(0xFFFF6B6B).withOpacity(0.45),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFF6B6B).withOpacity(0.12),
+                  blurRadius: 30,
+                  spreadRadius: 4,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF6B6B).withOpacity(0.12),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFFF6B6B).withOpacity(0.35),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.report_gmailerrorred_rounded,
+                    color: Color(0xFFFF6B6B),
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Title
+                Text(
+                  _isMediaMode ? "Report this Media?" : "Report this Link?",
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Description
+                Text(
+                  _isMediaMode
+                      ? "Are you sure you want to report this media as harmful or misleading?"
+                      : "Are you sure you want to report this link as harmful or suspicious?",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.45,
+                    color: Colors.white.withOpacity(0.60),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // URL / File preview
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Text(
+                    _isMediaMode
+                        ? _mediaFileName()
+                        : (widget.inputText ?? ""),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: Colors.white.withOpacity(0.50),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 22),
+
+                // Buttons Row
+                Row(
+                  children: [
+                    // Cancel Button
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          height: 48,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.07),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.12),
+                            ),
+                          ),
+                          child: const Text(
+                            "Cancel",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Yes Report Button
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          _submitReport();
+                        },
+                        child: Container(
+                          height: 48,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF6B6B),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            "Yes, Report",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _submitReport() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+        });
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(22, 28, 22, 28),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0A2235),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: const Color(0xFF3DDC84).withOpacity(0.45),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF3DDC84).withOpacity(0.12),
+                  blurRadius: 30,
+                  spreadRadius: 4,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3DDC84).withOpacity(0.12),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFF3DDC84).withOpacity(0.35),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_rounded,
+                    color: Color(0xFF3DDC84),
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "Reported Successfully",
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Thank you! Our team will review your report shortly.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.45,
+                    color: Colors.white.withOpacity(0.55),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  //  BUILD
+  // ─────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final String displayInput =
@@ -749,7 +1001,7 @@ class _ResultScreenState extends State<ResultScreen>
 
                               Center(
                                 child: GestureDetector(
-                                  onTap: () {},
+                                  onTap: () => _showReportDialog(), // ← UPDATED
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -789,6 +1041,10 @@ class _ResultScreenState extends State<ResultScreen>
     );
   }
 }
+
+// ─────────────────────────────────────────────
+//  WIDGETS
+// ─────────────────────────────────────────────
 
 class _CircularScoreRing extends StatefulWidget {
   const _CircularScoreRing({

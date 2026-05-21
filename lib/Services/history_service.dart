@@ -24,7 +24,7 @@ class HistoryService {
       if (res.statusCode != 200) {
         return {
           "status": false,
-          "message": "Server error: ${res.statusCode}",
+          "message": "History not Found",
           "data": [],
         };
       }

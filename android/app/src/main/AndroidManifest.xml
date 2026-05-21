@@ -15,7 +15,7 @@
         android:maxSdkVersion="32" />
 
     <application
-        android:label="social_saver"
+        android:label="Trust Scan"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -43,10 +43,36 @@
     </application>
 
     <queries>
+        <!-- ✅ Existing: Text processing (OCR etc.) -->
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+
+        <!-- ✅ Rate Us: Play Store open karne ke liye -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+
+        <!-- ✅ Rate Us: market:// scheme (direct Play Store app) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="market" />
+        </intent>
+
+        <!-- ✅ Contact Us: Email app open karne ke liye -->
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
+
+        <!-- ✅ Share App: share_plus ke liye -->
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="text/plain" />
+        </intent>
+
     </queries>
 
 </manifest>

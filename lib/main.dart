@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:social_saver/Bottom%20Navigation%20Bar/help_support.dart';
 
 import 'package:social_saver/Intro Screens/splash_screen.dart';
 import 'package:social_saver/Intro Screens/onboarding_screen.dart';
@@ -46,6 +47,7 @@ class MyApp extends StatelessWidget {
         GetPage(name: '/onboarding', page: () => const OnboardingScreen()),
         GetPage(name: '/signin', page: () => const SignInScreen()),
         GetPage(name: '/home', page: () => const BottomNavScreen()),
+        GetPage(name: '/help', page: () => const HelpAndSupportScreens()),
       ],
     );
   }

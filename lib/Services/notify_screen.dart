@@ -1,12 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
-class NotificationScreen extends StatelessWidget {
+import 'package:shared_preferences/shared_preferences.dart';
+
+class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
+
+  @override
+  State<NotificationScreen> createState() => _NotificationScreenState();
+}
+
+class _NotificationScreenState extends State<NotificationScreen> {
+  bool notificationsEnabled = true;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationSetting();
+  }
+
+  Future<void> _loadNotificationSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (!mounted) return;
+
+    setState(() {
+      notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
+      isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     const bg = Color(0xFF061B2B);
+
     return Scaffold(
       backgroundColor: bg,
       body: Stack(
@@ -16,6 +44,7 @@ class NotificationScreen extends StatelessWidget {
             "assets/images/bg.png",
             fit: BoxFit.cover,
           ),
+
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 26),
@@ -30,7 +59,6 @@ class NotificationScreen extends StatelessWidget {
                   children: [
                     const SizedBox(height: 18),
 
-                    // ✅ Top Row (Back JSON + Logo)
                     Row(
                       children: [
                         GestureDetector(
@@ -54,7 +82,9 @@ class NotificationScreen extends StatelessWidget {
                             ),
                           ),
                         ),
+
                         const Spacer(),
+
                         Image.asset(
                           "assets/images/logo.png",
                           width: 85,
@@ -63,7 +93,6 @@ class NotificationScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-
 
                     const Text(
                       "Notifications",
@@ -75,19 +104,34 @@ class NotificationScreen extends StatelessWidget {
                       ),
                     ),
 
-
-
                     const SizedBox(height: 24),
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(), // disables inner scroll
-                      itemCount: 5,
-                      separatorBuilder: (context, index) => const SizedBox(height: 15),
-                      itemBuilder: (context, index) {
-                        final time = index == 0 || index == 2 ? "Just now" : "2 min Ago";
-                        return NotificationCard(time: time);
-                      },
-                    ),
+
+                    if (isLoading)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 80),
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF00CFFF),
+                          ),
+                        ),
+                      )
+                    else if (!notificationsEnabled)
+                      const _NotificationsOffView()
+                    else
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: 5,
+                        separatorBuilder: (context, index) =>
+                        const SizedBox(height: 15),
+                        itemBuilder: (context, index) {
+                          final time = index == 0 || index == 2
+                              ? "Just now"
+                              : "2 min Ago";
+
+                          return NotificationCard(time: time);
+                        },
+                      ),
                   ],
                 ),
               ),
@@ -96,27 +140,109 @@ class NotificationScreen extends StatelessWidget {
         ],
       ),
     );
-
   }
 }
+
+/* ===================== NOTIFICATIONS OFF VIEW ===================== */
+
+class _NotificationsOffView extends StatelessWidget {
+  const _NotificationsOffView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 90),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF051325).withOpacity(0.88),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: const Color(0xFF00CFFF).withOpacity(0.45),
+              width: 1.4,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF00CFFF).withOpacity(0.25),
+                blurRadius: 16,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.08),
+                  border: Border.all(
+                    color: const Color(0xFF00CFFF).withOpacity(0.35),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.notifications_off_rounded,
+                  color: Color(0xFF00CFFF),
+                  size: 34,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              const Text(
+                "Notifications are turned off",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              Text(
+                "Turn them on from Settings to see new alerts here.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.65),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/* ===================== NOTIFICATION CARD ===================== */
 
 class NotificationCard extends StatelessWidget {
   final String time;
 
-  const NotificationCard({super.key, required this.time});
+  const NotificationCard({
+    super.key,
+    required this.time,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF051325), // Slightly lighter card background
+        color: const Color(0xFF051325),
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: Color(0xFF00CFFF), // Glowing blue border effect
+          color: const Color(0xFF00CFFF),
           width: 1.5,
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Color(0xFF00CFFF),
             blurRadius: 10,
@@ -126,7 +252,6 @@ class NotificationCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Alert Icon
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
@@ -135,18 +260,17 @@ class NotificationCard extends StatelessWidget {
             ),
             child: const Icon(
               Icons.warning_amber_rounded,
-              color: Colors.redAccent, // Red alert color
+              color: Colors.redAccent,
               size: 24,
             ),
           ),
 
           const SizedBox(width: 15),
 
-          // Text Content
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   "Scam Alert",
                   style: TextStyle(
@@ -155,7 +279,9 @@ class NotificationCard extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+
                 SizedBox(height: 4),
+
                 Text(
                   "Lorem Ipsum Dolor Sit Amet",
                   style: TextStyle(
@@ -169,7 +295,6 @@ class NotificationCard extends StatelessWidget {
             ),
           ),
 
-          // Time Widget
           Text(
             time,
             style: const TextStyle(
