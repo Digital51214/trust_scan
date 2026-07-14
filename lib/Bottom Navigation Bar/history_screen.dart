@@ -704,8 +704,21 @@ class _HistoryScreenState extends State<HistoryScreen>
         padding: const EdgeInsets.symmetric(horizontal: 20),
         children: [
           const SizedBox(height: 60),
-          Icon(Icons.wifi_off_rounded,
-              color: Colors.white.withOpacity(0.4), size: 40),
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.06),
+              border: Border.all(
+                color: cyan.withOpacity(0.20),
+                width: 2,
+              ),
+    ),
+
+            child: Image.asset("assets/images/search.png",
+                 width: 24,
+            height: 100,),
+          ),
+
           const SizedBox(height: 12),
           Text(
             errorMsg,

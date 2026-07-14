@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:social_saver/Bottom%20Navigation%20Bar/video_background.dart';
@@ -52,7 +53,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: Colors.white,
                     ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 7),
@@ -150,7 +151,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 30),
                   _ProfilePillTile(
+                    icon: Icons.tune_rounded,
                     title: "Edit Profile",
+                    subtitle: "Update your name, photo and details",
                     onTap: () async {
                       await Get.to(() => const EditProfileScreen());
                     },
@@ -165,53 +168,104 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class _ProfilePillTile extends StatelessWidget {
-  const _ProfilePillTile({required this.title, required this.onTap});
+/* ===================== FUTURISTIC GLASSY TILE ===================== */
 
+class _ProfilePillTile extends StatelessWidget {
+  const _ProfilePillTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.iconColor,
+  });
+
+  final IconData icon;
   final String title;
+  final String subtitle;
   final VoidCallback onTap;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
     const cyan = Color(0xFF2CC7FF);
+    final effectiveIconColor = iconColor ?? cyan;
 
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(28),
-      child: Container(
-        height: 58,
-        padding: const EdgeInsets.symmetric(horizontal: 18),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2CC7FF).withOpacity(0.4),
-          borderRadius: BorderRadius.circular(28),
-          border:
-          Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: cyan.withOpacity(0.08),
-              blurRadius: 14,
-              spreadRadius: 0.5,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Container(
+            height: 80,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: Colors.white.withOpacity(.12)),
+              boxShadow: [
+                BoxShadow(
+                  color: cyan.withOpacity(.12),
+                  blurRadius: 16,
+                  spreadRadius: 1,
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.tune_rounded,
-                size: 18, color: Color(0xFF2CC7FF)),
-            const SizedBox(width: 10),
-            const Text(
-              "Edit Profile",
-              style: TextStyle(
-                fontSize: 15.5,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                letterSpacing: 0.15,
-              ),
+            child: Row(
+              children: [
+                Container(
+                  height: 42,
+                  width: 42,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: effectiveIconColor.withOpacity(.12),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: effectiveIconColor,
+                    size: 22,
+                  ),
+                ),
+
+                const SizedBox(width: 14),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white.withOpacity(.55),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: Colors.white.withOpacity(.7),
+                ),
+              ],
             ),
-            const Spacer(),
-            Icon(Icons.arrow_forward_ios_rounded,
-                size: 18, color: Colors.white.withOpacity(0.75)),
-          ],
+          ),
         ),
       ),
     );

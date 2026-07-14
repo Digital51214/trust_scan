@@ -8,6 +8,7 @@ import 'package:lottie/lottie.dart';
 import 'package:social_saver/Bottom%20Navigation%20Bar/video_background.dart';
 import 'package:social_saver/Services/loading_animate.dart';
 import 'package:social_saver/Services/notify_screen.dart';
+import 'package:social_saver/glass_featured_card.dart';
 import 'package:social_saver/results_screen.dart';
 import 'package:social_saver/session/session_controller.dart';
 
@@ -196,7 +197,6 @@ class _HomeScreenState extends State<HomeScreen>
     final hasText = inputCtrl.text.trim().isNotEmpty;
 
     return Scaffold(
-
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -238,216 +238,276 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
 
+          // ── Decorative center Flow animation (purely background) ──
+          Align(
+            alignment: const Alignment(0, 0.10),
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.35,
+                child: SizedBox(
+                  width: 250,
+                  height: 250,
+                  child: Lottie.asset(
+                    "assets/images/Flow_5.json",
+                    fit: BoxFit.contain,
+                    repeat: true,
+                    animate: true,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
           // ── Content ───────────────────────────────────────────
           SafeArea(
             bottom: false,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: Stack(
-                children: [
-                  // ── Top section ───────────────────────────────
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 6),
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 6),
 
-                      // Header row
-                      Row(
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
+                    // Header row
+                    Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFF37C8FF)
+                                  .withOpacity(0.18),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
                                 color: const Color(0xFF37C8FF)
-                                    .withOpacity(0.18),
-                                width: 1.5,
+                                    .withOpacity(0.10),
+                                blurRadius: 12,
+                                spreadRadius: 1,
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF37C8FF)
-                                      .withOpacity(0.10),
-                                  blurRadius: 12,
-                                  spreadRadius: 1,
+                            ],
+                            image: const DecorationImage(
+                              image:
+                              AssetImage("assets/images/logo.png"),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Welcome back,",
+                              style: TextStyle(
+                                color: Colors.white60,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 1),
+                            Obx(() {
+                              final name =
+                              session.name.value.trim();
+                              return Text(
+                                name.isEmpty ? "User" : name,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
                                 ),
-                              ],
-                              image: const DecorationImage(
-                                image: AssetImage(
-                                    "assets/images/logo.png"),
-                                fit: BoxFit.cover,
+                              );
+                            }),
+                          ],
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () {
+                            Get.to(
+                                  () => NotificationScreen(),
+                              transition: Transition.noTransition,
+                              duration: Duration.zero,
+                            );
+                          },
+                          child: SizedBox(
+                            width: 50,
+                            height: 50,
+                            child: Center(
+                              child: Lottie.asset(
+                                "assets/images/notification_animation.json",
+                                width: 50,
+                                height: 50,
+                                fit: BoxFit.contain,
+                                repeat: true,
+                                animate: true,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          Column(
-                            crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Welcome back,",
-                                style: TextStyle(
-                                  color: Colors.white60,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const SizedBox(height: 1),
-                              Obx(() {
-                                final name =
-                                session.name.value.trim();
-                                return Text(
-                                  name.isEmpty ? "User" : name,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                );
-                              }),
-                            ],
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // AI badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF37C8FF)
+                            .withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: const Color(0xFF37C8FF)
+                              .withOpacity(0.18),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF37C8FF)
+                                .withOpacity(0.06),
+                            blurRadius: 14,
+                            spreadRadius: 1,
                           ),
-                          const Spacer(),
-                          GestureDetector(
-                            onTap: () {
-                              Get.to(
-                                    () => NotificationScreen(),
-                                transition: Transition.noTransition,
-                                duration: Duration.zero,
-                              );
-                            },
-                            child: SizedBox(
-                              width: 50,
-                              height: 50,
-                              child: Center(
-                                child: Lottie.asset(
-                                  "assets/images/notification_animation.json",
-                                  width: 50,
-                                  height: 50,
-                                  fit: BoxFit.contain,
-                                  repeat: true,
-                                  animate: true,
-                                ),
-                              ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.auto_awesome_rounded,
+                            size: 13,
+                            color: Color(0xFF37C8FF),
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            "AI Threat Intelligence",
+                            style: TextStyle(
+                              color: Color(0xFFC7F7FF),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.25,
                             ),
                           ),
                         ],
                       ),
+                    ),
 
-                      const SizedBox(height: 10),
+                    const SizedBox(height: 10),
 
-                      // AI badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF37C8FF)
-                              .withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: const Color(0xFF37C8FF)
-                                .withOpacity(0.18),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF37C8FF)
-                                  .withOpacity(0.06),
-                              blurRadius: 14,
-                              spreadRadius: 1,
-                            ),
-                          ],
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
+                    const Text(
+                      "Scan. Detect. Outsmart AI Scams.",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 25,
+                        height: 1.18,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.15,
+                      ),
+                    ),
+
+                    const SizedBox(height: 2),
+
+                    const Text(
+                      "Paste a link, suspicious message, or upload media to let your AI safety layer inspect it instantly.",
+                      style: TextStyle(
+                        color: Colors.white60,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // ---- Cards grid: FIXED height ----
+                    Builder(builder: (context) {
+                      const double gridHeight = 360; // <-- YAHAN SE HEIGHT BADLO
+                      const double rowGap = 12;
+                      final double rowHeight = (gridHeight - rowGap) / 2;
+
+                      return SizedBox(
+                        height: gridHeight,
+                        child: Column(
                           children: [
-                            Icon(
-                              Icons.auto_awesome_rounded,
-                              size: 13,
-                              color: Color(0xFF37C8FF),
+                            SizedBox(
+                              height: rowHeight,
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: GlassCard(
+                                      image: "assets/images/1_nobg.png",
+                                      title: "Private Shield",
+                                      subtitle: "Your data stays private and secure",
+                                      height: rowHeight,
+                                      onTap: () {},
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: GlassCard(
+                                      image: "assets/images/2_nobg.png",
+                                      title: "AI Detection",
+                                      subtitle: "Advanced AI scans for threats instantly",
+                                      height: rowHeight,
+                                      onTap: () {},
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            SizedBox(width: 6),
-                            Text(
-                              "AI Threat Intelligence",
-                              style: TextStyle(
-                                color: Color(0xFFC7F7FF),
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.25,
+                            const SizedBox(height: rowGap),
+                            SizedBox(
+                              height: rowHeight,
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: GlassCard(
+                                      image: "assets/images/3_nobg.png",
+                                      title: "Scam Guard",
+                                      subtitle: "Blocks scams before they can harm you",
+                                      height: rowHeight,
+                                      onTap: () {},
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: GlassCard(
+                                      image: "assets/images/4_nobg.png",
+                                      title: "Trust Score",
+                                      subtitle: "See confidence levels for every scan",
+                                      height: rowHeight,
+                                      onTap: () {},
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                      ),
+                      );
+                    }),
 
-                      const SizedBox(height: 10),
-
-                      const Text(
-                        "Scan. Detect. Outsmart AI Scams.",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 25,
-                          height: 1.18,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.15,
-                        ),
-                      ),
-
-                      const SizedBox(height: 2),
-
-                      const Text(
-                        "Paste a link, suspicious message, or upload media to let your AI safety layer inspect it instantly.",
-                        style: TextStyle(
-                          color: Colors.white60,
-                          fontSize: 13,
-                          height: 1.4,
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-                      _buildFeatures(),
-                    ],
-                  ),
-
-                  // ── Center Lottie ─────────────────────────────
-                  Align(
-                    alignment: const Alignment(0, 0.10),
-                    child: Opacity(
-                      opacity: 0.55,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: SizedBox(
-                          width: 250,
-                          height: 250,
-                          child: Lottie.asset(
-                            "assets/images/Flow_5.json",
-                            fit: BoxFit.contain,
-                            repeat: true,
-                            animate: true,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // ── Bottom input section ──────────────────────
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Padding(
-                      padding:
-                      EdgeInsets.only(bottom: bottomPad + 30),
+                    // ── BOTTOM: input bar (fixed, overlap nahi hoga) ──
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10, top: 10),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          AnimatedOpacity(
-                            opacity: _isScanning ? 1.0 : 0.0,
-                            duration:
-                            const Duration(milliseconds: 250),
-                            child: const Padding(
+                          // "Analyzing..." — jab hidden ho to 0 height,
+                          // isliye textfield ke upar khali space nahi rahega.
+                          AnimatedSize(
+                            duration: const Duration(milliseconds: 200),
+                            child: _isScanning
+                                ? const Padding(
                               padding: EdgeInsets.only(bottom: 8),
                               child: _PulsingText("Analyzing..."),
-                            ),
+                            )
+                                : const SizedBox(width: double.infinity, height: 0),
                           ),
-
-                          const SizedBox(height: 14),
 
                           // Input bar with orbit dots
                           AnimatedBuilder(
@@ -459,7 +519,7 @@ class _HomeScreenState extends State<HomeScreen>
 
                               return SizedBox(
                                 width: double.infinity,
-                                height: 68,
+                                height: 60,
                                 child: Stack(
                                   alignment: Alignment.center,
                                   clipBehavior: Clip.none,
@@ -474,17 +534,14 @@ class _HomeScreenState extends State<HomeScreen>
                                           2 +
                                           orbitRadius *
                                               (0.88 *
-                                                  MathHelper.cos(
-                                                      angle)),
+                                                  MathHelper.cos(angle)),
                                       top: 34 +
                                           orbitRadius *
                                               (0.18 *
-                                                  MathHelper.sin(
-                                                      angle)) -
+                                                  MathHelper.sin(angle)) -
                                           5,
                                       child: _OrbitDot(
-                                        opacity:
-                                        _isFocused ? 1.0 : 0.72,
+                                        opacity: _isFocused ? 1.0 : 0.72,
                                       ),
                                     ),
                                     Positioned(
@@ -507,8 +564,7 @@ class _HomeScreenState extends State<HomeScreen>
                                           4,
                                       child: _OrbitDot(
                                         size: 7,
-                                        opacity:
-                                        _isFocused ? 0.95 : 0.58,
+                                        opacity: _isFocused ? 0.95 : 0.58,
                                       ),
                                     ),
                                     Positioned(
@@ -531,8 +587,7 @@ class _HomeScreenState extends State<HomeScreen>
                                           4,
                                       child: _OrbitDot(
                                         size: 5.5,
-                                        opacity:
-                                        _isFocused ? 0.85 : 0.42,
+                                        opacity: _isFocused ? 0.85 : 0.42,
                                       ),
                                     ),
                                     child!,
@@ -541,19 +596,16 @@ class _HomeScreenState extends State<HomeScreen>
                               );
                             },
                             child: AnimatedContainer(
-                              duration:
-                              const Duration(milliseconds: 220),
+                              duration: const Duration(milliseconds: 220),
                               curve: Curves.easeOutCubic,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14),
+                              padding:
+                              const EdgeInsets.symmetric(horizontal: 14),
                               height: 52,
                               decoration: BoxDecoration(
                                 color: const Color(0xFF081A2A),
-                                borderRadius:
-                                BorderRadius.circular(28),
+                                borderRadius: BorderRadius.circular(28),
                                 border: Border.all(
-                                  color: const Color(0xFF37C8FF)
-                                      .withOpacity(
+                                  color: const Color(0xFF37C8FF).withOpacity(
                                       _isFocused ? 0.90 : 0.62),
                                   width: _isFocused ? 1.4 : 1.1,
                                 ),
@@ -561,25 +613,20 @@ class _HomeScreenState extends State<HomeScreen>
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                   colors: [
-                                    const Color(0xFF0E2235)
-                                        .withOpacity(0.98),
-                                    const Color(0xFF081A2A)
-                                        .withOpacity(0.99),
+                                    const Color(0xFF0E2235).withOpacity(0.98),
+                                    const Color(0xFF081A2A).withOpacity(0.99),
                                   ],
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFF37C8FF)
-                                        .withOpacity(
+                                    color: const Color(0xFF37C8FF).withOpacity(
                                         _isFocused ? 0.32 : 0.16),
                                     blurRadius: _isFocused ? 24 : 16,
-                                    spreadRadius:
-                                    _isFocused ? 1.2 : 0.5,
+                                    spreadRadius: _isFocused ? 1.2 : 0.5,
                                     offset: Offset.zero,
                                   ),
                                   BoxShadow(
-                                    color:
-                                    Colors.black.withOpacity(0.35),
+                                    color: Colors.black.withOpacity(0.35),
                                     blurRadius: 10,
                                     offset: const Offset(0, 4),
                                   ),
@@ -596,9 +643,8 @@ class _HomeScreenState extends State<HomeScreen>
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Focus(
-                                      onFocusChange: (hasFocus) =>
-                                          setState(() =>
-                                          _isFocused = hasFocus),
+                                      onFocusChange: (hasFocus) => setState(
+                                              () => _isFocused = hasFocus),
                                       child: TextField(
                                         controller: inputCtrl,
                                         style: const TextStyle(
@@ -608,8 +654,7 @@ class _HomeScreenState extends State<HomeScreen>
                                         ),
                                         textInputAction:
                                         TextInputAction.search,
-                                        onSubmitted: (_) =>
-                                            _goToResult(),
+                                        onSubmitted: (_) => _goToResult(),
                                         cursorColor:
                                         const Color(0xFF37C8FF),
                                         decoration: InputDecoration(
@@ -619,13 +664,11 @@ class _HomeScreenState extends State<HomeScreen>
                                             color: Colors.white
                                                 .withOpacity(0.34),
                                             fontSize: 13,
-                                            fontWeight:
-                                            FontWeight.w400,
+                                            fontWeight: FontWeight.w400,
                                           ),
                                           border: InputBorder.none,
                                           isDense: true,
-                                          contentPadding:
-                                          EdgeInsets.zero,
+                                          contentPadding: EdgeInsets.zero,
                                         ),
                                       ),
                                     ),
@@ -652,25 +695,22 @@ class _HomeScreenState extends State<HomeScreen>
 
                                   // Scanner icon
                                   GestureDetector(
-                                    onTap: _isScanning
-                                        ? null
-                                        : _goToResult,
-                                    child:
-                                    _ScannerIcon(hasText: hasText),
+                                    onTap:
+                                    _isScanning ? null : _goToResult,
+                                    child: _ScannerIcon(hasText: hasText),
                                   ),
                                 ],
                               ),
                             ),
                           ),
 
-                          const SizedBox(height: 18),
-                          _TrustIndicatorPlaceholder(
-                              hasText: hasText),
+                          const SizedBox(height: 12),
+                          _TrustIndicatorPlaceholder(hasText: hasText),
                         ],
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -683,7 +723,6 @@ class _HomeScreenState extends State<HomeScreen>
 // ════════════════════════════════════════════════════════════════
 //  SCANNER ICON — Xerox slow scan, reverse animation
 // ════════════════════════════════════════════════════════════════
-
 
 class _ScannerIcon extends StatefulWidget {
   const _ScannerIcon({required this.hasText});
@@ -707,7 +746,6 @@ class _ScannerIconState extends State<_ScannerIcon>
       duration: const Duration(milliseconds: 3000),
     );
 
-    // ✅ Manual forward → reverse → forward animation
     _lightPos = TweenSequence<double>([
       TweenSequenceItem(
         tween: Tween<double>(begin: 0.0, end: 1.0)
@@ -761,8 +799,7 @@ class _ScannerIconState extends State<_ScannerIcon>
             ? _lightPos.value * 2
             : (1 - _lightPos.value) * 2;
 
-        final lightTop =
-            topMin + _lightPos.value * (topMax - topMin);
+        final lightTop = topMin + _lightPos.value * (topMax - topMin);
 
         return Stack(
           alignment: Alignment.center,
@@ -775,21 +812,18 @@ class _ScannerIconState extends State<_ScannerIcon>
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: cyan.withOpacity(
-                        0.20 + 0.25 * glowIntensity,
-                      ),
+                      color: cyan.withOpacity(0.20 + 0.25 * glowIntensity),
                       blurRadius: 14,
                       spreadRadius: 0.5,
                     ),
                   ],
                 ),
               ),
-
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: SizedBox(
-                width: iconSize-2,
-                height: iconSize-2,
+                width: iconSize - 2,
+                height: iconSize - 2,
                 child: Stack(
                   clipBehavior: Clip.hardEdge,
                   children: [
@@ -802,7 +836,8 @@ class _ScannerIconState extends State<_ScannerIcon>
                             5,
                                 (i) => Container(
                               height: 1.5,
-                              margin: const EdgeInsets.symmetric(horizontal: 2),
+                              margin:
+                              const EdgeInsets.symmetric(horizontal: 2),
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.22),
                                 borderRadius: BorderRadius.circular(1),
@@ -812,7 +847,6 @@ class _ScannerIconState extends State<_ScannerIcon>
                         ),
                       ),
                     ),
-
                     if (widget.hasText)
                       Positioned(
                         left: 3,
@@ -841,11 +875,8 @@ class _ScannerIconState extends State<_ScannerIcon>
                           ),
                         ),
                       ),
-
                     Positioned.fill(
-                      child: CustomPaint(
-                        painter: _QrCornerPainter(),
-                      ),
+                      child: CustomPaint(painter: _QrCornerPainter()),
                     ),
                   ],
                 ),
@@ -857,6 +888,7 @@ class _ScannerIconState extends State<_ScannerIcon>
     );
   }
 }
+
 // ════════════════════════════════════════════════════════════════
 //  QR CORNER PAINTER
 // ════════════════════════════════════════════════════════════════
@@ -873,30 +905,20 @@ class _QrCornerPainter extends CustomPainter {
     const gap = 4.0;
     const len = 4.0;
 
-    // Top-left
-    canvas.drawLine(
-        Offset(gap, gap + len), Offset(gap, gap), paint);
-    canvas.drawLine(
-        Offset(gap, gap), Offset(gap + len, gap), paint);
-    // Top-right
+    canvas.drawLine(Offset(gap, gap + len), Offset(gap, gap), paint);
+    canvas.drawLine(Offset(gap, gap), Offset(gap + len, gap), paint);
     canvas.drawLine(Offset(size.width - gap - len, gap),
         Offset(size.width - gap, gap), paint);
     canvas.drawLine(Offset(size.width - gap, gap),
         Offset(size.width - gap, gap + len), paint);
-    // Bottom-left
     canvas.drawLine(Offset(gap, size.height - gap - len),
         Offset(gap, size.height - gap), paint);
     canvas.drawLine(Offset(gap, size.height - gap),
         Offset(gap + len, size.height - gap), paint);
-    // Bottom-right
-    canvas.drawLine(
-        Offset(size.width - gap - len, size.height - gap),
-        Offset(size.width - gap, size.height - gap),
-        paint);
-    canvas.drawLine(
-        Offset(size.width - gap, size.height - gap - len),
-        Offset(size.width - gap, size.height - gap),
-        paint);
+    canvas.drawLine(Offset(size.width - gap - len, size.height - gap),
+        Offset(size.width - gap, size.height - gap), paint);
+    canvas.drawLine(Offset(size.width - gap, size.height - gap - len),
+        Offset(size.width - gap, size.height - gap), paint);
   }
 
   @override
@@ -923,8 +945,7 @@ class _OrbitDot extends StatelessWidget {
           color: const Color(0xFF37C8FF).withOpacity(opacity),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF37C8FF)
-                  .withOpacity(opacity * 0.75),
+              color: const Color(0xFF37C8FF).withOpacity(opacity * 0.75),
               blurRadius: 10,
               spreadRadius: 1.2,
             ),
@@ -948,8 +969,7 @@ class _TrustIndicatorPlaceholder extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
-      padding:
-      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.04),
         borderRadius: BorderRadius.circular(12),
@@ -1103,7 +1123,7 @@ class _MediaPickTile extends StatelessWidget {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  FEATURE CHIPS
+//  FEATURE CHIPS (ab use nahi ho raha, reference ke liye rakha hai)
 // ════════════════════════════════════════════════════════════════
 
 Widget _buildFeatures() {
@@ -1111,12 +1131,9 @@ Widget _buildFeatures() {
     spacing: 8,
     runSpacing: 8,
     children: const [
-      _FeatureChip(
-          icon: Icons.lock_outline_rounded, label: "Private Shield"),
-      _FeatureChip(
-          icon: Icons.flash_on_rounded, label: "AI Detection"),
-      _FeatureChip(
-          icon: Icons.verified_outlined, label: "Trust Score"),
+      _FeatureChip(icon: Icons.lock_outline_rounded, label: "Private Shield"),
+      _FeatureChip(icon: Icons.flash_on_rounded, label: "AI Detection"),
+      _FeatureChip(icon: Icons.verified_outlined, label: "Trust Score"),
       _FeatureChip(icon: Icons.shield_outlined, label: "Scam Guard"),
     ],
   );
@@ -1130,8 +1147,7 @@ class _FeatureChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(20),

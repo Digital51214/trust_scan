@@ -101,7 +101,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                   const SizedBox(height: 30),
 
                   _PillTile(
+                    icon: Icons.notifications_none_rounded,
                     title: "Notifications",
+                    iconColor: cyan,
+                    subtitle: "Stay updated with important alerts",
                     trailing: Switch(
                       value: notifOn,
                       activeColor: cyan,
@@ -118,11 +121,14 @@ class _SettingsScreenState extends State<SettingsScreen>
                   const SizedBox(height: 14),
 
                   _PillTile(
+                    icon: Icons.public_rounded,
+                    iconColor: cyan,
                     title: "Help Center",
+                    subtitle: "Get support and find answers",
                     trailing: Icon(
                       Icons.arrow_forward_ios_rounded,
                       color: Colors.white.withOpacity(.7),
-                      size: 18,
+                      size: 16,
                     ),
                     onTap: () {
                       Get.to(() => const HelpAndSupportScreens());
@@ -132,11 +138,14 @@ class _SettingsScreenState extends State<SettingsScreen>
                   const SizedBox(height: 14),
 
                   _PillTile(
+                    icon: Icons.delete_outline_rounded,
                     title: "Delete Account",
+                    subtitle: "Permanently delete your account",
+                    iconColor: red,
                     trailing: Icon(
                       Icons.arrow_forward_ios_rounded,
                       color: Colors.white.withOpacity(.7),
-                      size: 18,
+                      size: 16,
                     ),
                     onTap: () {
                       Get.to(() => const DeleteAccountScreen());
@@ -255,50 +264,95 @@ class _SettingsScreenState extends State<SettingsScreen>
 
 class _PillTile extends StatelessWidget {
   const _PillTile({
+    required this.icon,
+
     required this.title,
+    required this.subtitle,
     required this.trailing,
     required this.onTap,
+    this.iconColor,
   });
 
+  final IconData icon;
   final String title;
+  final String subtitle;
   final Widget trailing;
   final VoidCallback onTap;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
-    const cyan = Color(0xFF00E5FF);
+    const cyan = Colors.white;
+    final effectiveIconColor = iconColor ?? cyan;
 
     return GestureDetector(
       onTap: onTap,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(22),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
           child: Container(
-            height: 56,
-            padding: const EdgeInsets.symmetric(horizontal: 18),
+            height: 95,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: cyan.withOpacity(.1)),
+              color: Colors.white.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: Colors.white.withOpacity(.12)),
               boxShadow: [
                 BoxShadow(
-                  color: cyan.withOpacity(.3),
-                  blurRadius: 12,
+                  color: cyan.withOpacity(.12),
+                  blurRadius: 16,
+                  spreadRadius: 1,
                 ),
               ],
             ),
             child: Row(
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                Container(
+                  height: 42,
+                  width: 42,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: effectiveIconColor.withOpacity(.12),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: effectiveIconColor,
+                    size: 22,
                   ),
                 ),
-                const Spacer(),
+
+                const SizedBox(width: 14),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white.withOpacity(.55),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
                 trailing,
               ],
             ),

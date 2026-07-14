@@ -41,7 +41,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Arial',
       ),
-      initialRoute: '/splash',
+      initialRoute: '/signin',
       getPages: [
         GetPage(name: '/splash', page: () => const SplashScreen()),
         GetPage(name: '/onboarding', page: () => const OnboardingScreen()),
